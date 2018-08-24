@@ -1,0 +1,9 @@
+act/__init__.pyc
+build/
+dist/
+python_act.egg-info/
+*.pyc
+*.swp
+python-act.tgz
+.pytest_cache
+act_api.egg-info/

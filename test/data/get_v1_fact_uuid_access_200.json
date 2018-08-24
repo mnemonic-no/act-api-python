@@ -1,0 +1,1 @@
+{"url": "http://localhost:8080/v1/fact/uuid/00fb833d-3f74-4d70-9f00-d189eba6d038/access", "params": {}, "text": "{\"responseCode\":200,\"limit\":0,\"count\":0,\"size\":0,\"messages\":null,\"data\":[]}", "status_code": 200, "json": {"messages": null, "count": 0, "data": [], "size": 0, "limit": 0, "responseCode": 200}}
