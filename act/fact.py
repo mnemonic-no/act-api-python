@@ -124,9 +124,9 @@ class Fact(ActBase):
         Field("in_reference_to", deserializer=RetractedFact, serializer=False),
         Field("organization", deserializer=Organization, serializer=False),
         Field("access_mode", default="Public"),
-        Field("objects", default=[], serialize_target="bindings",
-              deserializer=Object, serializer=object_binding_serializer),
-        Field("bindings", deserialize_target="objects", serializer=False),
+        Field("source_object", deserializer=Object),
+        Field("destination_object", deserializer=Object),
+        Field("bidirectional_binding", default=False),
     ]
 
     @schema_doc(SCHEMA)
@@ -141,24 +141,55 @@ class Fact(ActBase):
 
         return self
 
-    def source(self, *args, **kwargs):
-        """Add source binding. Takes all arguments applicable to
-        act.Act.object"""
+    def source(self, object_type=None, object_value=None, object_id=None):
+        """Add source binding. Must usee either object_id or object_type and object_value"""
 
-        return self.__add_if_not_exists(
-            *args, direction=act.FACT_IS_DESTINATION, **kwargs)
+        if not object_id and not (object_type and object_value):
+            raise MissingField(
+                "Must have either object_id or object_type and object_value")
 
-    def destination(self, *args, **kwargs):
-        """Add destination binding. Takes all arguments applicable to
-        act.Act.object"""
+        if object_id:
+            self.data["source_object"] = object_id
+        else:
+            self.data["source_object"] = "{}/{}".format(
+                object_type, object_value)
 
-        return self.__add_if_not_exists(
-            *args, direction=act.FACT_IS_SOURCE, **kwargs)
+        return self
 
-    def bidirectional(self, *args, **kwargs):
-        """Add bidirectional binding. Takes all arguments applicable to act.Act.object"""
-        return self.__add_if_not_exists(
-            *args, direction=act.BIDIRECTIONAL_FACT, **kwargs)
+    def destination(
+            self,
+            object_type=None,
+            object_value=None,
+            object_id=None):
+        """Add destination binding. Must usee either object_id or object_type and object_value"""
+
+        if not object_id and not (object_type and object_value):
+            raise MissingField(
+                "Must have either object_id or object_type and object_value")
+
+        if object_id:
+            self.data["destination_object"] = object_id
+        else:
+            self.data["destination_object"] = "{}/{}".format(
+                object_type, object_value)
+
+        return self
+
+    def bidirectional(
+            self,
+            source_object_type,
+            source_object_value,
+            destination_object_type,
+            destination_object_value):
+        """Add bidirectional binding."""
+
+        self.data["source_object"] = "{}/{}".format(
+            source_object_type, source_object_value)
+        self.data["destination_object"] = "{}/{}".format(
+            destination_object_type, destination_object_value)
+        self.data["bidirectional_binding"] = True
+
+        return self
 
     def get(self):
         """Get fact"""
@@ -230,7 +261,8 @@ Returns Fact object
             raise MissingField("Must have fact ID to add comment")
 
         if reply_to and not re.search(RE_UUID_MATCH, reply_to):
-            raise ValidationError("reply_to is not a valid UUID: {}".format(reply_to))
+            raise ValidationError(
+                "reply_to is not a valid UUID: {}".format(reply_to))
 
         self.api_post(
             "v1/fact/uuid/{}/comments".format(self.id),

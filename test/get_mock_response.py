@@ -64,7 +64,6 @@ def create_mock(
 
     if os.path.isfile(filename):
         sys.stderr.write("Skipping, {} already exists\n".format(filename))
-        test_data = json.loads(open(filename).read())
         return json.loads(open(filename).read())["json"]
 
     try:
@@ -93,12 +92,9 @@ create_mock(args.act_baseurl,
             json={"type": "seenIn",
                   "value": "report",
                   "accessMode": "Public",
-                  "bindings": [{"objectType": "ipv4",
-                                "objectValue": "127.0.0.1",
-                                "direction": "FactIsDestination"},
-                               {"objectType": "report",
-                                "objectValue": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
-                                "direction": "FactIsSource"}]})
+                  "sourceObject": "ipv4/127.0.0.1",
+                  "destinationObject": "report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
+                  })
 
 facts = create_mock(args.act_baseurl,
                     args.user_id,

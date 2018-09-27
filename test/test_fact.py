@@ -27,7 +27,9 @@ def test_add_fact():
     # We do not have id or timestamp yet
     assert f.id is None
     assert f.timestamp is None
-    assert len(f.objects) == 2
+    assert f.source_object is not None
+    assert f.destination_object is not None
+    assert f.bidirectional_binding is not None
 
     # Add fact
     f.add()
@@ -38,7 +40,6 @@ def test_add_fact():
     assert re.search(RE_UUID_MATCH, f.organization.id)
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
-    assert len(f.objects) == 2
 
 
 @responses.activate

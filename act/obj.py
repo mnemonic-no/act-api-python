@@ -97,7 +97,7 @@ class Object(ActBase):
 
         result = []
         for element in self.api_post(url, query=query)["data"]:
-            if "objects" in element:
+            if any(["sourceObject" in element, "destinationObject" in element]):
                 result.append(act.fact.Fact(**element))
             elif "statistics" in element:
                 result.append(act.fact.Object(**element))
