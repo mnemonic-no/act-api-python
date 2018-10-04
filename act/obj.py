@@ -10,8 +10,6 @@ class ObjectType(ActBase):
         Field("id"),
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
-        Field("entity_handler", default="IdentityHandler"),
-        Field("entity_handler_parameter"),
         Field("namespace", deserializer=NameSpace),
     ]
 
@@ -110,17 +108,3 @@ class Object(ActBase):
         # autodetect the types and deserialize accordingly
 
         return result
-
-
-def object_binding_serializer(obj):
-    binding = {
-        "direction": obj.direction
-    }
-
-    if "id" in obj.data and obj.id:
-        binding["objectID"] = obj.id
-    else:
-        binding["objectType"] = obj.type.name
-        binding["objectValue"] = obj.value
-
-    return binding
