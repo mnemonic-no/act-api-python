@@ -83,11 +83,11 @@ class Object(ActBase):
         return result_set("configure", self.config)
 
     def serialize(self):
-        # Return None for empty (non initialized objects)
+        # Return None for empty objects (non initialized objects)
         if not (self.id or self.value):
             return None
-        else: # Else return default serializer
-            return super(Object, self).serialize()
+        # return default serializer
+        return super(Object, self).serialize()
 
     def traverse(self, query=None):
         """Traverse from object"""
