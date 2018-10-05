@@ -82,6 +82,13 @@ class Object(ActBase):
         # Add authentication information to all facts
         return result_set("configure", self.config)
 
+    def serialize(self):
+        # Return None for empty (non initialized objects)
+        if not (self.id or self.value):
+            return None
+        else: # Else return default serializer
+            return super(Object, self).serialize()
+
     def traverse(self, query=None):
         """Traverse from object"""
 
