@@ -7,3 +7,4 @@ python_act.egg-info/
 python-act.tgz
 .pytest_cache
 act_api.egg-info/
+.cache

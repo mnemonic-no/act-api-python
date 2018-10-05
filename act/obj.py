@@ -10,8 +10,6 @@ class ObjectType(ActBase):
         Field("id"),
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
-        Field("entity_handler", default="IdentityHandler"),
-        Field("entity_handler_parameter"),
         Field("namespace", deserializer=NameSpace),
     ]
 
@@ -84,6 +82,13 @@ class Object(ActBase):
         # Add authentication information to all facts
         return result_set("configure", self.config)
 
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not (self.id or self.value):
+            return None
+        # return default serializer
+        return super(Object, self).serialize()
+
     def traverse(self, query=None):
         """Traverse from object"""
 
@@ -97,7 +102,7 @@ class Object(ActBase):
 
         result = []
         for element in self.api_post(url, query=query)["data"]:
-            if "objects" in element:
+            if any(["sourceObject" in element, "destinationObject" in element]):
                 result.append(act.fact.Fact(**element))
             elif "statistics" in element:
                 result.append(act.fact.Object(**element))
@@ -110,17 +115,3 @@ class Object(ActBase):
         # autodetect the types and deserialize accordingly
 
         return result
-
-
-def object_binding_serializer(obj):
-    binding = {
-        "direction": obj.direction
-    }
-
-    if "id" in obj.data and obj.id:
-        binding["objectID"] = obj.id
-    else:
-        binding["objectType"] = obj.type.name
-        binding["objectValue"] = obj.value
-
-    return binding

@@ -2,6 +2,18 @@
 
 python-act is a library used to connect to the [ACT platform](https://github.com/mnemonic-no/act-platform).
 
+The source code for this API is availble on [github](https://github.com/mnemonic-no/act-api-python) and on
+[PyPi](https://pypi.org/project/act-api).
+
+# Setup
+
+Install from PyPi:
+
+```
+$ pip3 install act-api
+```
+
+
 The platform has a REST api, and the goal of this library is to expose all functionality in the API.
 
 # Objects and Facts
@@ -58,18 +70,19 @@ Additional arguments to act.Act can be passed on to [requests](http://docs.pytho
 Create a fact by calling `fact()`. The result can be chained using one or more `source()`, `destination()` or `bidirectionial()` to add linked objects.
 
 ```
->>> f = c.fact("seenIn", "report").source("ipv4", "127.0.0.1")
+>>> f = c.fact("seenIn", "report").source("ipv4", "127.0.0.1").destination("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7")
 >>> f
-{'value': 'report', 'id': None, 'timestamp': None, 'organization': None, 'last_seen_timestamp': None, 'type': {'relevant_object_bindings': None, 'id': None, 'name': 'seenIn', 'entity_handler': 'IdentityHandler', 'namespace': None, 'entity_handler_parameter': None, 'validator': 'RegexValidator', 'validator_parameter': '(.|\\n)+'}, 'objects': [{'value': '127.0.0.1', 'type': {'id': None, 'name': 'ipv4', 'entity_handler': 'IdentityHandler', 'namespace': None, 'entity_handler_parameter': None, 'validator': 'RegexValidator', 'validator_parameter': '(.|\\n)+'}, 'statistics': None, 'id': None, 'direction': 'FactIsDestination'}], 'in_reference_to': None, 'access_mode': 'Public'}
+{'destination_object': 'report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'source_object': 'ipv4/127.0.0.1', 'access_mode': 'Public', 'id': None, 'in_reference_to': None, 'timestamp': None, 'bidirectional_binding': False, 'value': 'report', 'type': {'validator_parameter': '(.|\\n)+', 'namespace': None, 'entity_handler_parameter': None, 'id': None, 'entity_handler': 'IdentityHandler', 'relevant_object_bindings': None, 'name': 'seenIn', 'validator': 'RegexValidator'}, 'last_seen_timestamp': None, 'organization': None}
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
 
 ```
 >>> f.serialize()
-{'value': 'report', 'type': 'seenIn', 'bindings': [{'objectValue': '127.0.0.1', 'objectType': 'ipv4', 'direction': 'FactIsDestination'}], 'accessMode': 'Public'}
+{'accessMode': 'Public', 'sourceObject': 'ipv4/127.0.0.1', 'destinationObject': 'report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'val
+ue': 'report', 'type': 'seenIn'}
 >>> f.json()
-'{"value": "report", "type": "seenIn", "bindings": [{"objectValue": "127.0.0.1", "objectType": "ipv4", "direction": "FactIsDestination"}], "accessMode": "Public"}'
+'{"accessMode": "Public", "sourceObject": "ipv4/127.0.0.1", "destinationObject": "report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7", "value": "report", "type': "seenIn"}'
 ```
 
 Since the fact is not yet added it does not have an id.
