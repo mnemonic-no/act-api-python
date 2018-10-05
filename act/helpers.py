@@ -244,8 +244,7 @@ Returns created fact type, or exisiting fact type if it already exists.
                 object_type = object_binding.get(object_direction)
                 if object_type and object_type not in object_types:
                     raise act.base.ArgumentError(
-                        "Illegal bidiectional object type {} linked from fact type {}".format(
-                            object_type, name))
+                        "Object does not exist: {}".format(object_type))
 
         add_bindings = []
 
