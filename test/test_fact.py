@@ -6,6 +6,7 @@ from act_test import get_mock_data
 
 # pylint: disable=no-member
 
+
 @responses.activate
 def test_add_fact():
     mock = get_mock_data("data/post_v1_fact_201.json")
@@ -40,6 +41,33 @@ def test_add_fact():
     assert re.search(RE_UUID_MATCH, f.organization.id)
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
+
+
+@responses.activate
+def test_create_fact_type():
+    mock = get_mock_data("data/post_v1_factType_201.json")
+    responses.add(
+        responses.POST,
+        mock["url"],
+        json=mock["json"],
+        status=mock["status_code"])
+
+    mock_data = mock["json"]["data"]
+    threat_actor_id = mock_data["relevantObjectBindings"][0][
+        "destinationObjectType"]["id"]
+
+    c = act.Act("http://localhost:8080", 1)
+    fact_type = c.fact_type(
+        name="threatActorAlias",
+        validator=".+",
+        relevant_object_bindings=[
+            act.fact.RelevantObjectBindings(
+                act.obj.Object(id=threat_actor_id),
+                act.obj.Object(id=threat_actor_id),
+                True)]).add()
+
+    assert fact_type.name == "threatActorAlias"
+    assert re.search(RE_UUID_MATCH, fact_type.id)
 
 
 @responses.activate

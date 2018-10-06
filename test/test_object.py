@@ -26,6 +26,23 @@ def test_get_object_types():
     assert all([re.search(RE_UUID_MATCH, object_t.id)
                 for object_t in object_types])
 
+@responses.activate
+def test_create_object_type():
+    mock = get_mock_data("data/post_v1_objectType_201.json")
+    responses.add(
+        responses.POST,
+        mock["url"],
+        json=mock["json"],
+        status=mock["status_code"])
+
+    c = act.Act("http://localhost:8080", 1)
+    object_type = c.object_type(
+        name="threatActor",
+        validator=".+").add()
+
+    assert object_type.name == "threatActor"
+    assert re.search(RE_UUID_MATCH, object_type.id)
+
 
 @responses.activate
 def test_get_object_by_uuid():

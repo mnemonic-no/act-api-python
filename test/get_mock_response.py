@@ -85,16 +85,44 @@ def create_mock(
 
 args = parseargs()
 
+# Create ObjectType
+threat_actor = create_mock(args.act_baseurl,
+                           args.user_id,
+                           "POST",
+                           "v1/objectType",
+                           json={
+                               "name": "threatActor",
+                               "validator": "RegexValidator",
+                               "validatorParameter": r".+"
+                           })["data"]
+
+# Create factType
 create_mock(args.act_baseurl,
             args.user_id,
             "POST",
-            "v1/fact",
-            json={"type": "seenIn",
-                  "value": "report",
-                  "accessMode": "Public",
-                  "sourceObject": "ipv4/127.0.0.1",
-                  "destinationObject": "report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"
-                  })
+            "v1/factType",
+            json={
+                "name": "threatActorAlias",
+                "validator": "RegexValidator",
+                "validatorParameter": ".+",
+                "relevantObjectBindings": [{
+                    "sourceObjectType": threat_actor["id"],
+                    "destinationObjectType": threat_actor["id"],
+                    "bidirectionalBinding": True
+                }]
+            })
+
+create_mock(
+    args.act_baseurl,
+    args.user_id,
+    "POST",
+    "v1/fact",
+    json={
+        "type": "seenIn",
+        "value": "report",
+        "accessMode": "Public",
+        "sourceObject": "ipv4/127.0.0.1",
+        "destinationObject": "report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"})
 
 facts = create_mock(args.act_baseurl,
                     args.user_id,
