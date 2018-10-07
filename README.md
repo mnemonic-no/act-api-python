@@ -72,17 +72,16 @@ Create a fact by calling `fact()`. The result can be chained using one or more `
 ```
 >>> f = c.fact("seenIn", "report").source("ipv4", "127.0.0.1").destination("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7")
 >>> f
-{'destination_object': 'report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'source_object': 'ipv4/127.0.0.1', 'access_mode': 'Public', 'id': None, 'in_reference_to': None, 'timestamp': None, 'bidirectional_binding': False, 'value': 'report', 'type': {'validator_parameter': '(.|\\n)+', 'namespace': None, 'entity_handler_parameter': None, 'id': None, 'entity_handler': 'IdentityHandler', 'relevant_object_bindings': None, 'name': 'seenIn', 'validator': 'RegexValidator'}, 'last_seen_timestamp': None, 'organization': None}
+{'timestamp': None, 'id': None, 'type': {'id': None, 'namespace': None, 'validator': 'RegexValidator', 'name': 'seenIn', 'relevant_object_bindings': None, 'validator_parameter': '(.|\\n)*'}, 'value': 'report', 'bidirectional_binding': False, 'in_reference_to': None, 'organization': None, 'source_object': {'statistics': None, 'id': None, 'type': {'name': 'ipv4', 'id': None, 'validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '127.0.0.1', 'direction': None}, 'access_mode': 'Public', 'destination_object': {'statistics': None, 'id': None, 'type': {'name': 'report', 'id': None, 'validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'direction': None}, 'last_seen_timestamp': None}
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
 
 ```
 >>> f.serialize()
-{'accessMode': 'Public', 'sourceObject': 'ipv4/127.0.0.1', 'destinationObject': 'report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'val
-ue': 'report', 'type': 'seenIn'}
+{'type': 'seenIn', 'destinationObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'accessMode': 'Public', 'value': 'report', 'sourceObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 >>> f.json()
-'{"accessMode": "Public", "sourceObject": "ipv4/127.0.0.1", "destinationObject": "report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7", "value": "report", "type': "seenIn"}'
+'{"type": "seenIn", "destinationObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "accessMode": "Public", "value": "report", "sourceObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'<Paste>
 ```
 
 Since the fact is not yet added it does not have an id.
@@ -95,20 +94,20 @@ None
 Use `add()` to add the fact to the platform.
 ```
 >>> f.add()
-{'value': 'report', 'id': 'ca55d514-6914-42f6-aa62-949b2a04f315', 'timestamp': '2018-04-29T08:41:57.580Z', 'organization': {'id': '00000000-0000-0000-0000-000000000001', 'name': 'Test Organization 1'}, 'last_seen_timestamp': '2018-04-29T08:43:32.987Z', 'type': {'relevant_object_bindings': None, 'id': '02f083e3-d9dc-46a0-8bb4-b192fc4ec910', 'name': 'seenIn', 'entity_handler': 'IdentityHandler', 'namespace': None, 'entity_handler_parameter': None, 'validator': 'RegexValidator', 'validator_parameter': '(.|\\n)+'}, 'objects': [{'value': '127.0.0.1', 'id': '0d4e7ad9-a911-4ce3-b7e6-2dcb41ed1b32', 'statistics': None, 'type': {'id': '8a250c06-95f3-4ef5-acee-ffe2ee1d3de5', 'name': 'ipv4', 'entity_handler': 'IdentityHandler', 'namespace': None, 'entity_handler_parameter': None, 'validator': 'RegexValidator', 'validator_parameter': '(.|\\n)+'}, 'direction': 'FactIsDestination'}], 'in_reference_to': {'value': '-', 'type': {'relevant_object_bindings': None, 'id': None, 'name': None, 'entity_handler': 'IdentityHandler', 'namespace': None, 'entity_handler_parameter': None, 'validator': 'RegexValidator', 'validator_parameter': '(.|\\n)+'}, 'id': None}, 'access_mode': 'Public'}
+{'organization': {'name': 'Test Organization 1', 'id': '00000000-0000-0000-0000-000000000001'}, 'id': '5e533787-e71d-4ba4-9208-531f9baf8437', 'type': {'id': '3c9fab73-3a50-4b0b-8c8e-4dc89ebc119e', 'namespace': None, 'validator': 'RegexValidator', 'name': 'seenIn', 'relevant_object_bindings': None, 'validator_parameter': '(.|\\n)*'}, 'value': 'report', 'bidirectional_binding': False, 'timestamp': '2018-10-07T17:06:27.216Z', 'destination_object': {'statistics': None, 'id':'9a94c8ad-7b85-41e4-bed5-13362c6a41ac', 'type': {'name': 'report', 'id': '5b51aa17-83b6-40fa-be71-885e98a04972', 'validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'direction': None}, 'access_mode': 'Public', 'source_object': {'statistics': None, 'id': '85803795-2026-4526-97bb-6221563bf05e', 'type': {'name': 'ipv4', 'id': 'bd38c56f-4a27-433a-ad33-6cee9c74a4ea','validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '127.0.0.1', 'direction': None}, 'in_reference_to': {'id': None, 'type': {'id': None, 'namespace': None, 'validator': 'RegexValidator', 'name': None, 'relevant_object_bindings': None, 'validator_parameter': '(.|\\n)*'}, 'value': '-'}, 'last_seen_timestamp': '2018-10-07T17:06:27.216Z'}
 ```
 
 The fact will be replaced with the fact added to the platform and it will now have an id.
 ```
 >>> print(f.id)
-ca55d514-6914-42f6-aa62-949b2a04f315
+'5e533787-e71d-4ba4-9208-531f9baf8437'
 ```
 
 
 ## Get fact
 Use `get()` to get a fact by it's id.
 ```
->>> f = c.fact(id="0f0cf526-5fad-4984-9ec5-90ac811e8798").get()
+>>> f = c.fact(id='5e533787-e71d-4ba4-9208-531f9baf8437').get()
 ```
 
 Properties on objects can be retrieved by dot notation.
@@ -152,7 +151,6 @@ Use `retract()` to retract a fact.. The fact *must* have an id, either by specyf
 ```
 >>> object_type = = c.object_type("fqdn").add()
 ```
-
 
 
 ## Search facts
@@ -228,7 +226,7 @@ Get all object types.
 >>> object_types[0].validator
 'RegexValidator'
 >>> object_types[0].validator_parameter
-'(.|\\n)+'
+'(.|\\n)*'
 ```
 
 ## Graph queries
