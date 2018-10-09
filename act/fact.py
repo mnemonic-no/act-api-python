@@ -1,4 +1,4 @@
-from logging import info
+from logging import info, warning
 import re
 import json
 import time
@@ -10,14 +10,19 @@ from .obj import Object, ObjectType
 from .base import ActBase, Organization, NameSpace, Comment
 
 
-class ObjectBinding(ActBase):
+class RelevantObjectBindings(ActBase):
     SCHEMA = [
-        Field("source_object_type", deserializer=ObjectType,
-              serializer=lambda source_object_type: source_object_type.id),
-        Field("destination_object_type", deserializer=ObjectType,
-              serializer=lambda destination_object_type: destination_object_type.id),
-        Field("bidirectional_binding", default=False)
-    ]
+        Field(
+            "source_object_type",
+            deserializer=ObjectType,
+            serializer=lambda source_object_type: source_object_type.id),
+        Field(
+            "destination_object_type",
+            deserializer=ObjectType,
+            serializer=lambda destination_object_type: destination_object_type.id),
+        Field(
+            "bidirectional_binding",
+            default=False)]
 
 
 class FactType(ActBase):
@@ -27,7 +32,7 @@ class FactType(ActBase):
         Field("id"),
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
-        Field("relevant_object_bindings", deserializer=ObjectBinding),
+        Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
         Field("namespace", deserializer=NameSpace),
     ]
 
@@ -58,66 +63,54 @@ Args:
     destination_object_type (objectType):   Destination Object Type
     bidirectional_binding (boolean):        Whether the binding is bidirectional
 """
-        if not self.id:
-            raise MissingField("Must have fact type ID")
-
-        url = "v1/factType/uuid/{}".format(self.id)
-
-        add_object_bindings = [
-            ObjectBinding(
+        return self.add_bindings([
+            RelevantObjectBindings(
                 source_object_type,
                 destination_object_type,
-                bidirectional_binding
-            ).serialize()
-        ]
-
-        fact_type = self.api_put(
-            url, addObjectBindings=add_object_bindings)["data"]
-
-        self.data = {}
-        self.deserialize(**fact_type)
-
-        info("Added binding to fact type {}: {} -> {} (bidirectional_binding={})".format(
-            self.id, source_object_type, destination_object_type, bidirectional_binding))
-
-        return self
+                bidirectional_binding)])
 
     def add_bindings(self, relevant_object_bindings):
         """Add multiple bindigns
 Args:
-    relevant_object_bindings (dict[]):     List of bindings which must be
-                                           tuples of source_object_type, destination_object_type, bidirectional_binding (True/False)
+    relevant_object_bindings (relevantObjectBindings[]):     List of bindings which must be a
+                                                             tuple of RelevantObjectBindings
 """
         if not self.id:
             raise MissingField("Must have fact type ID")
 
         url = "v1/factType/uuid/{}".format(self.id)
 
-        add_object_bindings = [
-            ObjectBinding(
-                source_object_type, destination_object_type,
-                bidirectional_binding).serialize()
-            for source_object_type, destination_object_type,
-            bidirectional_binding in
-            relevant_object_bindings]
+        existing_bindings = [
+            binding.serialize()
+            for binding
+            in self.relevant_object_bindings]
+
+        # Exclude already existing bindings
+        serialized_bindings = [
+            binding.serialize()
+            for binding
+            in relevant_object_bindings
+            if binding.serialize() not in existing_bindings]
+
+        if not serialized_bindings:
+            warning(
+                "All bindings specified for {} already exists".format(
+                    self.name))
+            return self
 
         fact_type = self.api_put(
-            url, addObjectBindings=add_object_bindings)["data"]
+            url, addObjectBindings=serialized_bindings)["data"]
 
         self.data = {}
         self.deserialize(**fact_type)
 
-        for source_object_type, destination_object_type, bidirectional_binding in relevant_object_bindings:
-            if source_object_type:
-                source_name = source_object_type.name
-            else:
-                source_name = "None"
-            if destination_object_type:
-                destination_name = destination_object_type.name
-            else:
-                destination_name = "None"
-            info("Added bindings to fact type {}: {} -> {} (bidirectional_binding={})".format(
-                self.name, source_name, destination_name, bidirectional_binding))
+        # Emit log of created bindings
+        for binding in relevant_object_bindings:
+            info(
+                "Added bindings to fact type {}: {} -> {} (bidirectional_binding={})".format(
+                    self.name, binding.source_object_type.data.get(
+                        "name", None), binding.destination_object_type.data.get(
+                            "name", None), binding.bidirectional_binding))
 
         return self
 
@@ -149,12 +142,24 @@ class RetractedFact(ActBase):
     ]
 
 
+def object_serializer(obj):
+    if obj.id is None and obj.type.name is None and obj.value is None:
+        return None
+
+    if obj.id:
+        return obj.id
+
+    return "{}/{}".format(obj.type.name, obj.value)
+
+
 class Fact(ActBase):
     """Manage facts"""
 
     SCHEMA = [
         Field("type", deserializer=FactType,
               serializer=lambda fact_type: fact_type.name),
+        # TODO: to be changed
+        # Field("value", default=""),
         Field("value", default="-"),
         Field("id", serializer=False),
         # For now, do not serialize/deserialize source
@@ -181,37 +186,27 @@ class Fact(ActBase):
 
         return self
 
-    def source(self, object_type=None, object_value=None, object_id=None):
-        """Add source binding. Must usee either object_id or object_type and object_value"""
+    def source(self, *args, **kwargs):
+        """Add source binding. Accepts the same arguments as Object()"""
 
-        if not object_id and not (object_type and object_value):
+        self.data["source_object"] = Object(*args, **kwargs)
+
+        if not self.source_object.id and not (
+                self.source_object.type and self.source_object.value):
             raise MissingField(
                 "Must have either object_id or object_type and object_value")
-
-        if object_id:
-            self.data["source_object"] = object_id
-        else:
-            self.data["source_object"] = "{}/{}".format(
-                object_type, object_value)
 
         return self
 
-    def destination(
-            self,
-            object_type=None,
-            object_value=None,
-            object_id=None):
-        """Add destination binding. Must usee either object_id or object_type and object_value"""
+    def destination(self, *args, **kwargs):
+        """Add source binding. Accepts the same arguments as Object()"""
 
-        if not object_id and not (object_type and object_value):
+        self.data["destination_object"] = Object(*args, **kwargs)
+
+        if not self.destination_object.id and not (
+                self.destination_object.type and self.destination_object.value):
             raise MissingField(
                 "Must have either object_id or object_type and object_value")
-
-        if object_id:
-            self.data["destination_object"] = object_id
-        else:
-            self.data["destination_object"] = "{}/{}".format(
-                object_type, object_value)
 
         return self
 
@@ -223,10 +218,12 @@ class Fact(ActBase):
             destination_object_value):
         """Add bidirectional binding."""
 
-        self.data["source_object"] = "{}/{}".format(
-            source_object_type, source_object_value)
-        self.data["destination_object"] = "{}/{}".format(
-            destination_object_type, destination_object_value)
+        self.data["source_object"] = Object(
+            source_object_type,
+            source_object_value)
+        self.data["destination_object"] = Object(
+            destination_object_type,
+            destination_object_value)
         self.data["bidirectional_binding"] = True
 
         return self
@@ -247,6 +244,11 @@ class Fact(ActBase):
         """Add fact"""
 
         started = time.time()
+
+        # Special serializer for source/destination objects
+        self.data["source_object"] = object_serializer(self.source_object)
+        self.data["destination_object"] = object_serializer(
+            self.destination_object)
 
         params = self.serialize()
         fact = self.api_post("v1/fact", **params)["data"]
@@ -271,7 +273,8 @@ class Fact(ActBase):
     def grant_access(self, subject_uuid):
         """Grant access - not implemented yet"""
 
-        raise act.base.NotImplemented("Grant access is not implemented")
+        raise act.base.NotImplemented(
+            "Grant access is not implemented, ignoring {}".format(subject_uuid))
 
     def get_comments(self):
         """Get comments

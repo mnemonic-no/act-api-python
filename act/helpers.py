@@ -1,11 +1,21 @@
 import logging
 from logging import warning
+import itertools
 import sys
 import act
 from .base import ActBase, Config
-from .fact import Fact, FactType
+from .fact import Fact, FactType, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
+
+
+def as_list(value):
+    "Encapsulate value in list if value is not already a list/tuple"
+
+    if not isinstance(value, (list, tuple)):
+        return [value]
+
+    return value
 
 
 class Act(ActBase):
@@ -218,7 +228,7 @@ act object."""
 Args:
     name (str):                  Fact type name
     validator (str):             Regular expression valdiator. Default = %s
-    object_bindings (str[]):     List of object_dict bindings:
+    object_bindings (dict[]):    List of object_dict bindings
 
 Returns created fact type, or exisiting fact type if it already exists.
 """ % act.DEFAULT_VALIDATOR
@@ -232,43 +242,56 @@ Returns created fact type, or exisiting fact type if it already exists.
             object_type.name: object_type
             for object_type in self.get_object_types()}
 
-        if name in existing_fact_types:
-            warning("Fact type %s already exists" % name)
-            fact_type = existing_fact_types[name]
-        else:
-            fact_type = self.fact_type(name=name, validator_parameter=validator).add()
+        object_types[None] = None
 
         # Verify that all object types exists
         for object_binding in object_bindings:
-            for object_direction in ("sourceObjectType", "destinationObjectType"):
-                object_type = object_binding.get(object_direction)
-                if object_type and object_type not in object_types:
-                    raise act.base.ArgumentError(
-                        "Object does not exist: {}".format(object_type))
+            for object_direction in (
+                "sourceObjectType",
+                    "destinationObjectType"):
+                for object_type in as_list(
+                        object_binding.get(object_direction)):
+                    if object_type and object_type not in object_types:
+                        raise act.base.ArgumentError(
+                            "Object does not exist: {}".format(object_type))
 
-        add_bindings = []
+        relevant_object_bindings = []
 
-        for object_binding in object_bindings:
+        for binding in object_bindings:
             # Default -> binding is not directional
-            bidirectional = object_binding.get("bidirectional", False)
+            bidirectional = binding.get("bidirectional", False)
 
-            if "sourceObjectType" in object_binding:
-                source_object_type = object_types[object_binding["sourceObjectType"]]
-            else:
-                source_object_type = None
+            source_object_type = [
+                object_types[object_type]
+                for object_type
+                in as_list(binding.get("sourceObjectType", None))]
 
-            if "destinationObjectType" in object_binding:
-                destination_object_type = object_types[object_binding["destinationObjectType"]]
-            else:
-                destination_object_type = None
+            destination_object_type = [
+                object_types[object_type]
+                for object_type
+                in as_list(binding.get("destinationObjectType", None))]
 
-            if not ("destinationObjectType" in object_binding or "sourceObjectType" in object_binding):
+            if not("destinationObjectType" in binding or
+                   "sourceObjectType" in binding):
                 raise act.base.ArgumentError(
                     "Must specify either sourceObjectType, destinationObjectType or both in bindings for fact type {}".format(name))
 
-            add_bindings.append([source_object_type, destination_object_type, bidirectional])
+            relevant_object_bindings += [
+                RelevantObjectBindings(*bindings)
+                for bindings
+                in itertools.product(
+                    *[as_list(source_object_type),
+                      as_list(destination_object_type),
+                      [bidirectional]])]
 
-        fact_type.add_bindings(add_bindings)
+        if name in existing_fact_types:
+            warning("Fact type %s already exists" % name)
+            fact_type = existing_fact_types[name]
+            fact_type.add_bindings(relevant_object_bindings)
+        else:
+            fact_type = self.fact_type(
+                name=name, validator_parameter=validator,
+                relevant_object_bindings=relevant_object_bindings).add()
 
         return fact_type
 
@@ -283,18 +306,27 @@ Returns created fact type, or exisiting fact type if it already exists.
             object_type.name: object_type
             for object_type in self.get_object_types()}
 
+        # Create list of all combiations of object types / bidirectional
+        bindings = [
+            RelevantObjectBindings(
+                source_object_type,
+                destination_object_type,
+                bidirectional)
+            for source_object_type, destination_object_type, bidirectional
+            in itertools.product(*[
+                object_types.values(),
+                object_types.values(),
+                [True, False]])]
+
         if name in existing_fact_types:
+            # Do not create fact, but update bindings
             warning("Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
+            fact_type.add_bindings(bindings)
         else:
-            fact_type = self.fact_type(name=name, validator_parameter=validator_parameter).add()
-
-        add_bindings = []
-        for bidirectional in [True, False]:
-            for _, source_object_type in object_types.items():
-                for _, destination_object_type in object_types.items():
-                    add_bindings.append([source_object_type, destination_object_type, bidirectional])
-
-        fact_type.add_bindings(add_bindings)
+            # Create fact with bindings
+            fact_type = self.fact_type(
+                name=name, validator_parameter=validator_parameter,
+                relevant_object_bindings=bindings).add()
 
         return fact_type

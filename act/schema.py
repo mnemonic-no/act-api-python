@@ -18,6 +18,7 @@ class MissingField(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+# pylint: disable=useless-object-inheritance
 class Field(object):
     """Schema fields"""
 
@@ -57,6 +58,7 @@ Args:
             return value
 
         if isinstance(value, dict):
+            # pylint: disable=comparison-with-callable
             if self.deserializer == default_serializer:
                 raise ValidationError(
                     "dict is not suppored by default serializer. field={}, value={}".format(
@@ -96,6 +98,7 @@ The following arguments can be specified by position or keyword.
     return dec
 
 
+# pylint: disable=useless-object-inheritance
 class Schema(object):
     """Define schema and serialize/deserialize response from the platform"""
 
@@ -110,10 +113,13 @@ class Schema(object):
 
         self.deserialize(**kwargs)
 
-    def json(self, exclude_empty=True, to_camel_case=True):
-        return json.dumps(self.serialize(exclude_empty=exclude_empty, to_camel_case=to_camel_case))
+    def json(self, exclude_none=True, to_camel_case=True):
+        return json.dumps(
+            self.serialize(
+                exclude_none=exclude_none,
+                to_camel_case=to_camel_case))
 
-    def serialize(self, exclude_empty=True, to_camel_case=True):
+    def serialize(self, exclude_none=True, to_camel_case=True):
         entries = {}
         for field in self.SCHEMA:
             serialize_target = field.serialize_target or field.name
@@ -125,7 +131,7 @@ class Schema(object):
             value = self.data.get(field.name, None)
 
             # Exclude empty values
-            if exclude_empty and not value:
+            if exclude_none and value is None:
                 continue
 
             # Serializer disabled
@@ -204,14 +210,17 @@ class Schema(object):
                     and field.deserializer is not False:
                 self.data[field.name] = copy.copy(field.default)
 
+    def __getitem__(self, key):
+        return self.data[key]
+
     def __getattr__(self, attr):
         if attr in self.data:
             return self.data[attr]
-        else:
-            raise AttributeError(
-                # pylint: disable=too-many-format-args
-                "{} object has no attribute {}".format(
-                    self.__class__, attr))
+
+        raise AttributeError(
+            # pylint: disable=too-many-format-args
+            "{} object has no attribute {}".format(
+                self.__class__, attr))
 
     def __repr__(self):
         return repr(self.data)
