@@ -39,12 +39,16 @@ Args:
     # Apply common request arguments
     requests_kwargs.update(kwargs)
 
+    # Make sure we have header as argument
+    if "headers" not in requests_kwargs:
+        requests_kwargs["headers"] = {}
+
+    # Add User ID as header
+    requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
+
     res = requests.request(
         method,
         url,
-        headers={
-            "ACT-User-ID": str(user_id)
-        },
         **requests_kwargs
     )
 
