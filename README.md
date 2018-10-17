@@ -57,7 +57,7 @@ The returned object exposes most of the API in the ACT platform:
 * get_fact_types - Get fact types
 * object - Manage objects
 * object_search - Searh objects
-* object_type - Get object types
+* get_object_types - Get object types
 
 Additional arguments to act.Act can be passed on to [requests](http://docs.python-requests.org) using the requests_common_kwargs, which mans you can add for instance `auth` if the instance is behind a reverse proxy with HTTP authentication:
 
