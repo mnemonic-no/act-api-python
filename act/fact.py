@@ -143,6 +143,9 @@ class RetractedFact(ActBase):
 
 
 def object_serializer(obj):
+    if not obj:
+        return None
+
     if obj.id is None and obj.type.name is None and obj.value is None:
         return None
 
