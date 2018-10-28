@@ -161,9 +161,7 @@ class Fact(ActBase):
     SCHEMA = [
         Field("type", deserializer=FactType,
               serializer=lambda fact_type: fact_type.name),
-        # TODO: to be changed
-        # Field("value", default=""),
-        Field("value", default="-"),
+        Field("value", default=""),
         Field("id", serializer=False),
         # For now, do not serialize/deserialize source
         Field("source", deserializer=False, serializer=False),
