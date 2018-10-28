@@ -96,6 +96,11 @@ threat_actor = create_mock(args.act_baseurl,
                                "validatorParameter": r".+"
                            })["data"]
 
+# Get Object Types
+object_types = create_mock(args.act_baseurl, args.user_id, "GET", "v1/objectType", DATADIR)
+
+threat_actor = [ot for ot in object_types["data"] if ot["name"] == "threatActor"][0]
+
 # Create factType
 create_mock(args.act_baseurl,
             args.user_id,
@@ -239,9 +244,6 @@ create_mock(
     "POST",
     "v1/fact/uuid/{}/retract".format(fact_id),
     filename="post_v1_fact_uuid_retract_201.json")
-
-# Get Object Types
-create_mock(args.act_baseurl, args.user_id, "GET", "v1/objectType", DATADIR)
 
 # Get Fact Types
 create_mock(args.act_baseurl, args.user_id, "GET", "v1/factType", DATADIR)
