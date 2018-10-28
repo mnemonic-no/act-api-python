@@ -199,7 +199,7 @@ class ActBase(Schema):
 
         for field, value in self.data.items():
             # Only compare serialized fields. The other fields
-            # have have different representation if they are created locally
+            # have different representation if they are created locally
             # and not recieved from the back end
             if self.get_field(field).serializer is False:
                 continue
