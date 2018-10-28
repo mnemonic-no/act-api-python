@@ -119,6 +119,11 @@ Args:
     def __getitem__(self, sliced):
         return self.data[sliced]
 
+    def __str__(self):
+        if not self.data:
+            return "No result"
+        return "\n".join(["{}".format(item) for item in self.data])
+
     def __iter__(self):
         """Iterate over the entries"""
         return self.data.__iter__()
