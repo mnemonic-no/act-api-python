@@ -115,3 +115,11 @@ class Object(ActBase):
         # autodetect the types and deserialize accordingly
 
         return result
+
+    def __str__(self):
+        """
+        Construnct string representation on this format
+        (src_obj_type/src_obj_value))
+        """
+
+        return "({}/{})".format(self.type.name, self.value)

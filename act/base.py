@@ -116,9 +116,6 @@ Args:
         """Returns the number of entries"""
         return len(self.data)
 
-    def __repr__(self):
-        return str(self.data)
-
     def __getitem__(self, sliced):
         return self.data[sliced]
 
@@ -190,6 +187,26 @@ class ActBase(Schema):
         """Send GET request to API"""
 
         return self.api_request("GET", uri)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False # Different types -> not equal
+
+        for field, value in self.data.items():
+            # Only compare serialized fields. The other fields
+            # have have different representation if they are created locally
+            # and not recieved from the back end
+            if self.get_field(field).serializer is False:
+                continue
+            if field == "id" and not all([value, other.data.get("id")]):
+                # We do not have id in both items but it
+                # can still be the same if other values are equal
+                continue
+            if other.data.get(field) != value:
+                return False # Different field value
+
+        # All field values are equal
+        return True
 
 
 class NameSpace(ActBase):
