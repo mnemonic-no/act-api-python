@@ -10,6 +10,10 @@ class NotImplemented(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class InvalidData(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
 class ArgumentError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -203,12 +207,16 @@ class ActBase(Schema):
             # and not recieved from the back end
             if self.get_field(field).serializer is False:
                 continue
-            if field == "id" and not all([value, other.data.get("id")]):
-                # We do not have id in both items but it
-                # can still be the same if other values are equal
+            if field == "id":
+                # Facts/objects may not have an ID, unless they are returned from the backend
+                # We will check for inconsistencies below
                 continue
             if other.data.get(field) != value:
                 return False # Different field value
+
+        # Two objects where all fields are equal do not have the same id
+        if self.id and other.id and self.id != other.id:
+            raise InvalidData("Two objects with equal fields do not have the same id")
 
         # All field values are equal
         return True
