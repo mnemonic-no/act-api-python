@@ -355,3 +355,36 @@ Returns retracted fact.
         self.deserialize(**fact)
 
         return self
+
+    def __str__(self):
+        """
+        Construnct string representation on this format
+        (src_obj_type/src_obj_value) -[fact_type/fact_value]-> (dest_obj_type/dest_obj_value)
+        """
+
+        out = ""
+
+        # Include source object if set
+        if self.source_object:
+            out += "({}/{}) -".format(self.source_object.type.name, self.source_object.value)
+
+        # Add fact type
+        out += "[{}".format(self.type.name)
+
+        # Add value if set
+        if self.value and not self.value.startswith("-"):
+            out += "/{}".format(self.value)
+        out += "]"
+
+        # Add destination object if set
+        if self.destination_object:
+
+            # Use arrow unless bidirectional
+            if self.bidirectional_binding:
+                out += "-"
+            else:
+                out += "->"
+
+            out += " ({}/{})".format(self.destination_object.type.name, self.destination_object.value)
+
+        return out

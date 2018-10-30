@@ -41,6 +41,8 @@ Args:
                                False if field should not be deserialized.
     serialize_target (str):    Move data to this key(name) when erializing
     deserialize_target (str):  Move data to this key(name) when deserializing
+    reprf (func|False):        repr() for field. Default is the value of the field
+                               If False, the field will not be used in repr()
     """
         self.name = name
         self.default = default
@@ -222,5 +224,44 @@ class Schema(object):
             "{} object has no attribute {}".format(
                 self.__class__, attr))
 
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False # Different types -> not equal
+
+        for field, value in self.data.items():
+            if other.data.get(field) != value:
+                return False # Different field value
+
+        # All field values are equal
+        return True
+
+    def __ne__(self, other):
+        """
+        Test for not equal and use the inverse of __eq__.
+        This is only needed in python2, not python3.
+        """
+        return not self.__eq__(other)
+
     def __repr__(self):
-        return repr(self.data)
+        """
+        Construnct repr string based on Schema values and optionally
+        the serializer field atttribute
+        """
+
+        args = []
+
+        for field in self.SCHEMA:
+            if field.serializer is False:
+                continue
+
+            if self.data.get(field.name) == field.default:
+                continue # Exclude default values
+
+            value = self[field.name]
+
+            if field.serializer:
+                value = field.serializer(value)
+
+            args.append('{}={!r}'.format(field.name, value))
+
+        return "{}({})".format(self.__class__.__name__, ", ".join(args))
