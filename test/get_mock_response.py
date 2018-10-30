@@ -86,7 +86,7 @@ def create_mock(
 args = parseargs()
 
 # Create ObjectType
-threat_actor = create_mock(args.act_baseurl,
+create_mock(args.act_baseurl,
                            args.user_id,
                            "POST",
                            "v1/objectType",
@@ -99,6 +99,7 @@ threat_actor = create_mock(args.act_baseurl,
 # Get Object Types
 object_types = create_mock(args.act_baseurl, args.user_id, "GET", "v1/objectType", DATADIR)
 
+# Get Threat Actor fact type
 threat_actor = [ot for ot in object_types["data"] if ot["name"] == "threatActor"][0]
 
 # Create factType
