@@ -10,6 +10,10 @@ class NotImplemented(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class InvalidData(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
 class ArgumentError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -116,11 +120,13 @@ Args:
         """Returns the number of entries"""
         return len(self.data)
 
-    def __repr__(self):
-        return str(self.data)
-
     def __getitem__(self, sliced):
         return self.data[sliced]
+
+    def __str__(self):
+        if not self.data:
+            return "No result"
+        return "\n".join(["{}".format(item) for item in self.data])
 
     def __iter__(self):
         """Iterate over the entries"""
@@ -190,6 +196,30 @@ class ActBase(Schema):
         """Send GET request to API"""
 
         return self.api_request("GET", uri)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False # Different types -> not equal
+
+        for field, value in self.data.items():
+            # Only compare serialized fields. The other fields
+            # have different representation if they are created locally
+            # and not recieved from the back end
+            if self.get_field(field).serializer is False:
+                continue
+            if field == "id":
+                # Facts/objects may not have an ID, unless they are returned from the backend
+                # We will check for inconsistencies below
+                continue
+            if other.data.get(field) != value:
+                return False # Different field value
+
+        # Two objects where all fields are equal do not have the same id
+        if self.id and other.id and self.id != other.id:
+            raise InvalidData("Two objects with equal fields do not have the same id")
+
+        # All field values are equal
+        return True
 
 
 class NameSpace(ActBase):

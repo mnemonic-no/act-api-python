@@ -2,6 +2,8 @@ import re
 import responses
 import act
 from act import RE_UUID_MATCH, RE_TIMESTAMP_MATCH, RE_UUID, RE_TIMESTAMP
+from act.fact import Fact
+from act.obj import Object
 from act_test import get_mock_data
 
 # pylint: disable=no-member
@@ -34,6 +36,22 @@ def test_add_fact():
 
     # Add fact
     f.add()
+
+    fact_repr = repr(f)
+    repr_f = eval(fact_repr)
+
+    assert f == repr_f
+    assert f.value == repr_f.value
+    assert f.type.name == repr_f.type.name
+    assert f.source_object == repr_f.source_object
+    assert f.source_object.value == repr_f.source_object.value
+    assert f.destination_object.type == repr_f.destination_object.type
+    assert f.destination_object.value == repr_f.destination_object.value
+
+    assert str(f) == str(repr_f)
+
+    assert str(f) == \
+        "(ipv4/127.0.0.1) -[seenIn/report]-> (report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7)"
 
     # id, timestamp and organization should now be fetched from API
     assert re.search(RE_UUID_MATCH, f.id)
