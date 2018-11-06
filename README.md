@@ -46,7 +46,7 @@ Connct to the API using an URL where the API is exposed and a user ID:
 
 ```
 >>> import act
->>> c = act.Act("http://localhost:8080", user_id = 1, log_level = "warning")
+>>> c = act.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning")
 ```
 
 The returned object exposes most of the API in the ACT platform:
@@ -62,7 +62,7 @@ The returned object exposes most of the API in the ACT platform:
 Additional arguments to act.Act can be passed on to [requests](http://docs.python-requests.org) using the requests_common_kwargs, which mans you can add for instance `auth` if the instance is behind a reverse proxy with HTTP authentication:
 
 ```
->>> c = act.Act("http://localhost:8080", user_id = 1, log_level = "warning", requests_common_kwargs = {"auth": ("act", "<PASSWORD>")})
+>>> c = act.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning", requests_common_kwargs = {"auth": ("act", "<PASSWORD>")})
 ```
 
 ## Create fact
