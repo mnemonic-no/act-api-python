@@ -72,7 +72,7 @@ Create a fact by calling `fact()`. The result can be chained using one or more `
 ```
 >>> f = c.fact("seenIn", "report").source("ipv4", "127.0.0.1").destination("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7")
 >>> f
-{'timestamp': None, 'id': None, 'type': {'id': None, 'namespace': None, 'validator': 'RegexValidator', 'name': 'seenIn', 'relevant_object_bindings': None, 'validator_parameter': '(.|\\n)*'}, 'value': 'report', 'bidirectional_binding': False, 'in_reference_to': None, 'organization': None, 'source_object': {'statistics': None, 'id': None, 'type': {'name': 'ipv4', 'id': None, 'validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '127.0.0.1', 'direction': None}, 'access_mode': 'Public', 'destination_object': {'statistics': None, 'id': None, 'type': {'name': 'report', 'id': None, 'validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'direction': None}, 'last_seen_timestamp': None}
+Fact(type='seenIn', value='report', source_object=Object(type='ipv4', value='127.0.0.1'), destination_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'))
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
@@ -94,7 +94,7 @@ None
 Use `add()` to add the fact to the platform.
 ```
 >>> f.add()
-{'organization': {'name': 'Test Organization 1', 'id': '00000000-0000-0000-0000-000000000001'}, 'id': '5e533787-e71d-4ba4-9208-531f9baf8437', 'type': {'id': '3c9fab73-3a50-4b0b-8c8e-4dc89ebc119e', 'namespace': None, 'validator': 'RegexValidator', 'name': 'seenIn', 'relevant_object_bindings': None, 'validator_parameter': '(.|\\n)*'}, 'value': 'report', 'bidirectional_binding': False, 'timestamp': '2018-10-07T17:06:27.216Z', 'destination_object': {'statistics': None, 'id':'9a94c8ad-7b85-41e4-bed5-13362c6a41ac', 'type': {'name': 'report', 'id': '5b51aa17-83b6-40fa-be71-885e98a04972', 'validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', 'direction': None}, 'access_mode': 'Public', 'source_object': {'statistics': None, 'id': '85803795-2026-4526-97bb-6221563bf05e', 'type': {'name': 'ipv4', 'id': 'bd38c56f-4a27-433a-ad33-6cee9c74a4ea','validator_parameter': '(.|\\n)*', 'namespace': None, 'validator': 'RegexValidator'}, 'value': '127.0.0.1', 'direction': None}, 'in_reference_to': {'id': None, 'type': {'id': None, 'namespace': None, 'validator': 'RegexValidator', 'name': None, 'relevant_object_bindings': None, 'validator_parameter': '(.|\\n)*'}, 'value': '-'}, 'last_seen_timestamp': '2018-10-07T17:06:27.216Z'}
+Fact(type='seenIn', value='report', source_object=Object(type='ipv4', value='127.0.0.1', id='85803795-2026-4526-97bb-6221563bf05e'), destination_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='9a94c8ad-7b85-41e4-bed5-13362c6a41ac'))
 ```
 
 The fact will be replaced with the fact added to the platform and it will now have an id.
@@ -235,7 +235,7 @@ The act platform has support for graph queries using the Gremlin Query language.
 Use the `traverse()` function from an object to perform a graph query.
 
 ```
->>> c.object("ipv4", "127.0.0.220").traverse('g.bothE("seenIn").bothV().path().unfold()')
+>>> path = c.object("ipv4", "127.0.0.220").traverse('g.bothE("seenIn").bothV().path().unfold()')
 >>> type(path[0])
 <class 'act.obj.Object'>
 >>> type(path[1])
