@@ -30,7 +30,7 @@ class Field(object):
             deserializer=default_serializer,
             serialize_target=None,
             deserialize_target=None,
-            flatten=None):
+            flatten=False):
         """
 Args:
     name (str):                Field name
@@ -41,8 +41,7 @@ Args:
                                False if field should not be deserialized.
     serialize_target (str):    Move data to this key(name) when erializing
     deserialize_target (str):  Move data to this key(name) when deserializing
-    reprf (func|False):        repr() for field. Default is the value of the field
-                               If False, the field will not be used in repr()
+    flatten (bool):            Flatten data structure
     """
         self.name = name
         self.default = default
