@@ -33,6 +33,7 @@ class FactType(ActBase):
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
         Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
+        Field("relevant_fact_bindings"),
         Field("namespace", deserializer=NameSpace),
     ]
 
