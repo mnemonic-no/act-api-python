@@ -259,7 +259,7 @@ The graph of this will look like the screen shot below.
 
 # Type system
 
-Most instances are bootstrapped with a type system that will cover most use cases. However, it is also possible to extend the system with additonal objectType / factTypes.
+Most instances are bootstrapped with a type system that will cover most use cases. However, it is also possible to extend the system with additional objectTypes / factTypes.
 
 ## Add Object Types
 You can add objects by creating ObjectType object and executing `add()`. There is also a shortcut available on the client (`object_type`) which can used like this:
