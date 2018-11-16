@@ -13,7 +13,6 @@ Install from PyPi:
 $ pip3 install act-api
 ```
 
-
 The platform has a REST api, and the goal of this library is to expose all functionality in the API.
 
 # Objects and Facts
@@ -38,7 +37,6 @@ Facts can be linked on or more objects. Below, the seenIn fact is linked to both
 * Attributes can be accessed using dot notation (e.g fact.name and fact.type.name)
 
 # Example usage
-
 
 ## Connect to the API
 
@@ -257,6 +255,66 @@ The graph of this will look like the screen shot below.
 ['APT 29', 'OfficeMonkeys', 'APT 29', 'APT 29', 'The Dukes', 'APT 29', 'APT 29', 'Hammer Toss', 'APT 29', 'APT 29', 'EuroAPT', 'APT 29', 'APT 29', 'CozyDuke', 'APT 29', 'APT 29', 'Office Monkeys', 'APT 29', 'APT 29', 'CozyCar', 'APT 29', 'APT 29', 'APT29', 'APT 29', 'APT 29', 'Dukes', 'APT 29', 'APT 29', 'Cozy Duke', 'APT 29', 'APT 29', 'Cozer', 'APT 29', 'APT 29', 'CozyBear', 'APT 29', 'APT 29', 'Cozy Bear', 'APT 29', 'APT 29', 'SeaDuke', 'APT 29', 'APT 29', 'Group 100', 'APT 29', 'APT 29', 'Minidionis', 'APT 29', 'APT 29', 'The Dukes', 'APT29', 'APT 29', 'APT 29', 'The Dukes', 'APT29', 'The Dukes', 'APT 29', 'CozyDuke', 'APT29', 'APT 29', 'APT 29', 'CozyDuke', 'APT29', 'CozyDuke', 'APT 29', 'APT29', 'The Dukes', 'APT29', 'APT 29', 'APT29', 'The Dukes', 'APT 29', 'APT 29', 'APT29', 'Cozy Bear', 'APT 29', 'APT 29', 'APT29', 'Cozy Bear', 'APT29', 'APT 29', 'APT29', 'CozyDuke', 'APT 29', 'APT 29', 'APT29', 'CozyDuke', 'APT29', 'APT 29', 'Cozy Bear', 'APT29', 'APT 29', 'APT 29', 'Cozy Bear', 'APT29', 'Cozy Bear', 'APT 29', 'The Dukes', 'APT29', 'Cozy Bear', 'APT 29', 'APT 29', 'The Dukes', 'APT29', 'Cozy Bear', 'APT29', 'APT 29', 'The Dukes', 'APT29', 'CozyDuke', 'APT 29', 'APT 29', 'The Dukes', 'APT29', 'CozyDuke', 'APT29', 'APT 29', 'CozyDuke', 'APT29', 'The Dukes', 'APT29', 'APT 29', 'CozyDuke', 'APT29', 'The Dukes', 'APT 29', 'APT 29', 'CozyDuke', 'APT29', 'Cozy Bear', 'APT 29', 'APT 29', 'CozyDuke', 'APT29', 'Cozy Bear', 'APT29', 'APT 29', 'Cozy Bear', 'APT29', 'The Dukes', 'APT29', 'APT 29', 'Cozy Bear', 'APT29', 'The Dukes', 'APT 29', 'APT 29', 'Cozy Bear', 'APT29', 'CozyDuke', 'APT 29', 'APT 29', 'Cozy Bear', 'APT29', 'CozyDuke', 'APT29']
 >>> set(obj)
 {'Office Monkeys', 'EuroAPT', 'Minidionis', 'APT29', 'OfficeMonkeys', 'Hammer Toss', 'CozyCar', 'The Dukes', 'Cozer', 'CozyBear', 'Cozy Bear', 'SeaDuke', 'Group 100', 'Dukes', 'CozyDuke', 'Cozy Duke', 'APT 29'}
+```
+
+# Type system
+
+Most instances are bootstrapped with a type system that will cover most use cases. However, it is also possible to extend the system with additional objectTypes / factTypes.
+
+## Add Object Types
+You can add objects by creating ObjectType object and executing `add()`. There is also a shortcut available on the client (`object_type`) which can used like this:
+
+```
+>>> c.object_type(name="filename", validator_parameter='.+').add()
+ObjectType(name='filename', id='432c6d8a-542c-4374-94d1-b14e95139877', validator_parameter='.+', namespace=NameSpace(name='Global', id='00000000-0000-0000-0000-000000000000'))
+```
+
+The validator_parameter specifies what values that are allowed on this object. In this example, any non-empty values are allowed.
+
+## Add Fact Types
+
+Facts specifies relation to one or two Objects and to add facts there must be FactTypes that specifies these bindings. There is a helper function that will create a Fact Type with bindings between all exisiting object types in the system:
+
+```
+>>>> c.create_fact_type_all_bindings("droppedBy", '.*')
+(...)
+```
+
+However, on production systems it is advisable to only create bindings between objects that makes sense for the given Fact Type, like this:
+
+```
+>>> object_bindings = [{
+    "destinationObjectType": "hash",
+    "sourceObjectType": "filename"
+}]
+
+>>> c.create_fact_type("droppedBy", '.*', object_bindings = object_bindings)
+FactType(name='droppedBy', id='cbc49137-3c52-4655-8b47-386d31de231a', validator_parameter='.*', relevant_object_bindings=[RelevantObjectBindings(source_object_type='432c6d8a-542c-4374-94d1-b14e95139877', destination_object_type='e4b673b6-7a59-4fca-b8eb-ff4489501cf5')], namespace=NameSpace(name='Global', id='00000000-0000-0000-0000-000000000000'))
+```
+
+The bindings will be created using a combination of all source/destination objects for each entry.
+
+It is also possible to specify bidirectional bindings like this:
+
+```
+>>> object_bindings = [{
+   "bidirectional": true,
+   "destinationObjectType": "threatActor",
+   "sourceObjectType": "threatActor"
+}]
+```
+
+## Update Fact Types
+
+Facts are immutable, so it is not possible to update the ObjectType and FactType validators, as this might lead to an incositence state. However, it is possible to add Object Bindings to existing facts. This function require the objets to be retrived first:
+
+```
+>>> dropped_by = [ft for ft in c.get_fact_types() if ft.name == "droppedBy"][0]
+>>> hash = [ot for ot in c.get_object_types() if ot.name == "hash"][0]
+>>> filename = [ot for ot in c.get_object_types() if ot.name == "filename"][0]
+>>> dropped_by.id
+'18b0f70e-82dc-4904-b745-d20b0ac54adf'
+>>>> dropped_by.add_binding(source_object_type=filename, destination_object_type=hash)
 ```
 
 # Tests
