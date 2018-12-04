@@ -1,8 +1,10 @@
-import logging
-from logging import warning
 import itertools
+import logging
 import sys
+from logging import warning
+
 import act
+
 from .base import ActBase, Config
 from .fact import Fact, FactType, RelevantObjectBindings
 from .obj import Object, ObjectType
@@ -98,7 +100,7 @@ Args:
                                   timestamp. Timestamp is on this format:
                                   2016-09-28T21:26:22Z
     limit (integer):              Limit the number of returned Objects
-                                  (default 25, 0 means all)
+                                  (default 25). Limit must be <= 10000.
 
 All arguments are optional.
 
