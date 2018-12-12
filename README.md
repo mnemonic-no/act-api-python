@@ -178,7 +178,7 @@ fact_search(keywords='', object_type=[], fact_type=[], object_value=[], fact_val
                                       timestamp. Timestamp is on this format:
                                       2016-09-28T21:26:22Z
         limit (integer):              Limit the number of returned Objects
-                                      (default 25, 0 means all)
+                                      (default 25). Limit must be <= 10000.
 
     All arguments are optional.
 
