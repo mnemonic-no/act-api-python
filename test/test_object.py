@@ -19,8 +19,8 @@ def test_get_object_types():
     c = act.Act("http://localhost:8080", 1)
     object_types = c.get_object_types()
 
-    # We should have a fqdn object type
-    assert "fqdn" in [object_t.name for object_t in object_types]
+    # We should have a ipv4 object type
+    assert "ipv4" in [object_t.name for object_t in object_types]
 
     # All object types should have a valid uuid
     assert all([re.search(RE_UUID_MATCH, object_t.id)
@@ -28,7 +28,7 @@ def test_get_object_types():
 
 @responses.activate
 def test_create_object_type():
-    mock = get_mock_data("data/post_v1_objectType_201.json")
+    mock = get_mock_data("data/post_v1_objectType_threatActor_201.json")
     responses.add(
         responses.POST,
         mock["url"],
@@ -79,11 +79,11 @@ def test_get_object_by_type_value():
 
     facts = obj.facts()
 
-    assert not facts.complete
+    assert facts.complete
     assert len(facts) == facts.size
 
     # We should have at least one fact
-    assert len(facts) > 1
+    assert len(facts) >= 1
 
     # All facts should be of type Fact
     assert all([isinstance(fact, act.fact.Fact) for fact in facts])
@@ -106,11 +106,11 @@ def test_object_search():
     objects = c.object_search(
         fact_type=["seenIn"],
         fact_value=["report"],
-        limit=25)
+        limit=1)
 
     assert not objects.complete
-    assert objects.size == 25
-    assert objects.count > 1000
+    assert objects.size == 1
+    assert objects.count > 1
 
     obj = objects[0]
 
