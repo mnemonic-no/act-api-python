@@ -1,13 +1,14 @@
-from logging import info, warning
-import re
 import json
+import re
 import time
+from logging import info, warning
+
 import act
 from act import RE_UUID_MATCH
 
-from .schema import Field, schema_doc, MissingField, ValidationError
+from .base import ActBase, Comment, NameSpace, Organization
 from .obj import Object, ObjectType
-from .base import ActBase, Organization, NameSpace, Comment
+from .schema import Field, MissingField, ValidationError, schema_doc
 
 
 class RelevantObjectBindings(ActBase):
@@ -25,6 +26,29 @@ class RelevantObjectBindings(ActBase):
             default=False)]
 
 
+class RelevantFactBindings(ActBase):
+    """Meta Fact Type"""
+    SCHEMA = [
+        Field("name"),
+        Field("id"),
+        Field("fact_type", flatten=True),
+    ]
+
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not self.id:
+            return None
+
+        return {"factType": self.id}
+
+    def __bool__(self):
+        # Return None for empty objects (non initialized objects)
+        if not self.id:
+            return False
+
+        return True
+
+
 class FactType(ActBase):
     """Manage FactType"""
     SCHEMA = [
@@ -33,7 +57,7 @@ class FactType(ActBase):
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
         Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
-        Field("relevant_fact_bindings"),
+        Field("relevant_fact_bindings", deserializer=RelevantFactBindings),
         Field("namespace", deserializer=NameSpace),
     ]
 
@@ -43,6 +67,7 @@ class FactType(ActBase):
 
     def add(self):
         params = self.serialize()
+
         fact_type = self.api_post("v1/factType", **params)["data"]
 
         # Empty data and load new result from response
@@ -53,7 +78,7 @@ class FactType(ActBase):
 
         return self
 
-    def add_binding(
+    def add_object_binding(
             self,
             source_object_type,
             destination_object_type,
@@ -70,8 +95,8 @@ Args:
                 destination_object_type,
                 bidirectional_binding)])
 
-    def add_bindings(self, relevant_object_bindings):
-        """Add multiple bindigns
+    def add_object_bindings(self, relevant_object_bindings):
+        """Add multiple object bindings
 Args:
     relevant_object_bindings (relevantObjectBindings[]):     List of bindings which must be a
                                                              tuple of RelevantObjectBindings
@@ -115,6 +140,51 @@ Args:
 
         return self
 
+    def add_fact_binding(self, fact_type):
+        """Add bindings
+Args:
+    fact_type (factType):   Fact type
+"""
+        return self.add_fact_bindings([fact_type])
+
+    def add_fact_bindings(self, relevant_fact_bindings):
+        """Add multiple fact bindings
+Args:
+    relevant_fact_bindings (factType[]):     List of Fact Types
+"""
+        if not self.id:
+            raise MissingField("Must have fact type ID")
+
+        url = "v1/factType/uuid/{}".format(self.id)
+
+        # Get existing fact bindings
+        existing_bindings = [
+            binding.serialize()
+            for binding
+            in self.relevant_fact_bindings]
+
+        # Exclude already existing bindings
+        serialized_bindings = [
+            binding.serialize()
+            for binding
+            in relevant_fact_bindings
+            if binding.serialize() not in existing_bindings]
+
+        if not serialized_bindings:
+            warning("All bindings specified for {} already exists".format(self.name))
+            return self
+
+        fact_type = self.api_put(
+            url, addFactBindings=serialized_bindings)["data"]
+
+        self.data = {}
+        self.deserialize(**fact_type)
+
+        # Emit log of created bindings
+        for binding in relevant_fact_bindings:
+            info("Added bindings to meta fact type {}: {}".format(self.name, binding.name))
+        return self
+
     def rename(self, name):
         if not self.id:
             raise MissingField("Must have fact type ID")
@@ -132,15 +202,27 @@ Args:
         return self
 
 
-class RetractedFact(ActBase):
+class MetaFact(ActBase):
     """Retracted Fact"""
 
     SCHEMA = [
         Field("type", deserializer=FactType,
               serializer=lambda fact_type: fact_type.name),
-        Field("value", default="-"),
-        Field("id", serializer=False),
+        Field("value", default=""),
+        Field("id")
     ]
+
+    def __eq__(self, other):
+        """ Check equality with other object """
+
+        # If other is None, return True if id, type and value is None
+        if other is None:
+            if not (self.id or self.type.name or self.value):
+                return True
+            return False
+
+        # Otherwise, use equality check from super class
+        return super(MetaFact, self).__eq__(other)
 
 
 def object_serializer(obj):
@@ -168,7 +250,7 @@ class Fact(ActBase):
         Field("source", deserializer=False, serializer=False),
         Field("timestamp", serializer=False),
         Field("last_seen_timestamp", serializer=False),
-        Field("in_reference_to", deserializer=RetractedFact, serializer=False),
+        Field("in_reference_to", deserializer=MetaFact),
         Field("organization", deserializer=Organization, serializer=False),
         Field("access_mode", default="Public"),
         Field("source_object", deserializer=Object),
@@ -316,6 +398,80 @@ Returns Fact object
         return self
 
     # pylint: disable=unused-argument,dangerous-default-value
+    def get_meta(
+            self,
+            before=None,
+            after=None,
+            limit=None):
+        """Get meta facts
+Args:
+    before (timestamp):           Only return Facts added before a specific
+                                  timestamp. Timestamp is on this format:
+                                  2016-09-28T21:26:22Z
+    after (timestamp):            Only return Facts added after a specific
+                                  timestamp. Timestamp is on this format:
+                                  2016-09-28T21:26:22Z
+    limit (integer):              Limit the number of returned Objects
+                                  (default 25, 0 means all)
+    """
+
+        params = act.utils.prepare_params(locals())
+
+        if not self.id:
+            raise MissingField("Must have fact ID to get comments")
+
+        res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
+        return act.base.ActResultSet(res, Fact)
+
+    # pylint: disable=unused-argument,dangerous-default-value
+    def add_meta(
+            self,
+            fact_type,
+            value,
+            organization=None,
+            source=None,
+            access_mode=None,
+            comment=None,
+            acl=[]):
+        """Add meta fact
+Args:
+    fact_type (str):     Fact type (name)
+    fact_value (str):    Fact value
+    organization (str):  Set owner of new Fact. If not set the current user's
+                         organization will be used (takes Organization UUID)
+    source (str):        Set Source of new Fact. If not set the current user
+                         will be used as Source (takes Source UUID)
+    access_mode:         Set access mode of new Fact. If not set the accessMode
+                         from the retracted Fact will be used = ['Public',
+                         'RoleBased', 'Explicit']
+    comment (str):       If set adds a comment to new Fact
+    acl (str[] | str):   If set defines explicitly who has access to new Fact (takes Subject UUIDs)
+
+All arguments are optional.
+
+Returns meta fact
+    """
+        params = {}
+
+        # we do not use "type" as this is reserved in python, but we need
+        # to rename it to type before we send it to the API
+        for k, v in act.utils.prepare_params(locals(), ensure_list=["acl"]).items():
+            if k == "factType":
+                k = "type"
+            params[k] = v
+
+        if self.id:
+            url = "v1/fact/uuid/{}/meta".format(self.id)
+        else:
+            raise MissingField(
+                "Must have object ID to create meta fact")
+
+        meta_fact = self.api_post(url, **params)["data"]
+
+        return Fact(**meta_fact)
+
+    # pylint: disable=unused-argument,dangerous-default-value
+
     def retract(
             self,
             organization=None,
@@ -384,6 +540,7 @@ Returns retracted fact.
             else:
                 out += "->"
 
-            out += " ({}/{})".format(self.destination_object.type.name, self.destination_object.value)
+            out += " ({}/{})".format(self.destination_object.type.name,
+                                     self.destination_object.value)
 
         return out

@@ -1,10 +1,12 @@
-import logging
-from logging import warning
 import itertools
+import logging
 import sys
+from logging import error, warning
+
 import act
+
 from .base import ActBase, Config
-from .fact import Fact, FactType, RelevantObjectBindings
+from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
 
@@ -224,7 +226,7 @@ act object."""
             name,
             validator=act.DEFAULT_VALIDATOR,
             object_bindings=None):
-        """Created fact type with given source, destination and bidirectional objects
+        """Create fact type with given source, destination and bidirectional objects
 Args:
     name (str):                  Fact type name
     validator (str):             Regular expression valdiator. Default = %s
@@ -287,7 +289,7 @@ Returns created fact type, or exisiting fact type if it already exists.
         if name in existing_fact_types:
             warning("Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
-            fact_type.add_bindings(relevant_object_bindings)
+            fact_type.add_object_bindings(relevant_object_bindings)
         else:
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator,
@@ -322,11 +324,85 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Do not create fact, but update bindings
             warning("Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
-            fact_type.add_bindings(bindings)
+            fact_type.add_object_bindings(bindings)
         else:
             # Create fact with bindings
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator_parameter,
                 relevant_object_bindings=bindings).add()
+
+        return fact_type
+
+    def create_meta_fact_type(
+            self,
+            name,
+            fact_bindings,
+            validator=act.DEFAULT_VALIDATOR):
+        """Create meta fact type with given fact bindings
+Args:
+    name (str):                  Fact type name
+    validator (str):             Regular expression valdiator. Default = %s
+    fact_bindings ([]):          List of fact bindings (name)
+
+Returns created fact type, or exisiting fact type if it already exists.
+""" % act.DEFAULT_VALIDATOR
+
+        existing_fact_types = {fact_type.name: fact_type
+                               for fact_type in self.get_fact_types()}
+
+        # Verify that all fact types exists
+        for fact_type in fact_bindings:
+            if fact_type not in existing_fact_types:
+                raise act.base.ArgumentError("Fact type does not exist: {}".format(fact_type))
+
+        # Create list of Fact Bindings
+        relevant_fact_bindings = [
+            RelevantFactBindings(name=fact_type, id=existing_fact_types[fact_type].id)
+            for fact_type in fact_bindings
+        ]
+
+        if name in existing_fact_types:
+            # Fact type already exists. Do not create, but update bindings
+            warning("Fact type %s already exists" % name)
+            fact_type = existing_fact_types[name]
+            fact_type.add_fact_bindings(relevant_fact_bindings)
+        else:
+            fact_type = self.fact_type(
+                name=name, validator_parameter=validator,
+                relevant_fact_bindings=relevant_fact_bindings).add()
+
+        return fact_type
+
+    def create_meta_fact_type_all_bindings(self, name, validator_parameter=act.DEFAULT_VALIDATOR):
+        """Create a meta fact type that can be connected to all (non-meta) fact types
+Args:
+    name (str):                  Fact type name
+    validator (str):             Regular expression valdiator. Default = %s
+
+Returns created fact type, or exisiting fact type if it already exists.
+""" % act.DEFAULT_VALIDATOR
+
+        # Get all existing fact types
+        existing_fact_types = {fact_type.name: fact_type
+                               for fact_type in self.get_fact_types()}
+
+        # Create list bindings for this meta fact type
+        # We exclude facts that have fact bindings (meta facts)
+        bindings = [RelevantFactBindings(name=fact.name, id=fact.id)
+                    for fact in existing_fact_types.values()
+                    if not fact.relevant_fact_bindings]
+
+        if name in existing_fact_types:
+            # Fact already exists. Do not create fact, but update bindings
+            warning("Meta Fact type %s already exists" % name)
+            fact_type = existing_fact_types[name]
+
+            # Add bindings
+            fact_type.add_fact_bindings(bindings)
+        else:
+            # Create fact with bindings to all existing (non meta) fact types
+            fact_type = self.fact_type(name=name,
+                                       validator_parameter=validator_parameter,
+                                       relevant_fact_bindings=bindings).add()
 
         return fact_type
