@@ -1,7 +1,9 @@
 from logging import info, warning
+
 import act
-from .schema import Field, schema_doc, MissingField
+
 from .base import ActBase, NameSpace
+from .schema import Field, MissingField, schema_doc
 
 
 class ObjectType(ActBase):
@@ -82,6 +84,18 @@ class Object(ActBase):
         # Add authentication information to all facts
         return result_set("configure", self.config)
 
+    def __eq__(self, other):
+        """ Check equality with another object """
+
+        # If other is None, return True if id, type and value is None
+        if other is None:
+            if self.id is None and self.type.name is None and self.value is None:
+                return True
+            return False
+
+        # Otherwise, use equality check from super class
+        return super(Object, self).__eq__(other)
+
     def serialize(self):
         # Return None for empty objects (non initialized objects)
         if not (self.id or self.value):
@@ -115,6 +129,13 @@ class Object(ActBase):
         # autodetect the types and deserialize accordingly
 
         return result
+
+    def __bool__(self):
+        """ Return True for non-empty objects """
+        if self.id or (self.type and self.value):
+            return True
+
+        return False
 
     def __str__(self):
         """
