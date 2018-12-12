@@ -101,6 +101,11 @@ The fact will be replaced with the fact added to the platform and it will now ha
 '5e533787-e71d-4ba4-9208-531f9baf8437'
 ```
 
+A string representation of the fact will show a human readable version of the fact.
+```
+>>> str(f)
+'(ipv4/127.0.0.1) -[seenIn/report]-> (report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7)'
+```
 
 ## Get fact
 Use `get()` to get a fact by it's id.
@@ -115,6 +120,28 @@ Properties on objects can be retrieved by dot notation.
 >>> f.value
 'report'
 ```
+
+## Add Meta facts
+Use `add_meta()` to add meta facts (facts about facts).
+
+```
+>>> f = c.fact(id='6d80469f-bc73-4520-a82a-7667a6526362').get()
+>>> meta = f.add_meta("observationTime", datetime.datetime.now().isoformat())
+>>> meta
+Fact(type='observationTime', value='2018-12-12T13:42:59.298163', in_reference_to=MetaFact(type='seenIn', value='report', id='6d80469f-bc73-4520-a82a-7667a6526362'))
+
+```
+
+## Get Meta facts
+Use `get_meta()` to get meta facts (facts about facts).
+
+```
+>>> f = c.fact(id='6d80469f-bc73-4520-a82a-7667a6526362').get()
+>>> meta = f.get_meta()
+>>> print(meta[0])
+[observationTime/2018-12-12T13:42:17.526912]
+```
+
 
 ## Retract fact
 Use `retract()` to retract a fact.. The fact *must* have an id, either by specyfing it directly, or retriving the fact from a search.
@@ -147,7 +174,7 @@ Use `retract()` to retract a fact.. The fact *must* have an id, either by specyf
 ## Create object type
 
 ```
->>> object_type = = c.object_type("fqdn").add()
+>>> object_type = c.object_type("fqdn").add()
 ```
 
 
@@ -319,7 +346,6 @@ Facts are immutable, so it is not possible to update the ObjectType and FactType
 
 # Tests
 Tests (written in pytest) are contained in the test/ folder. Mock objects are available for for most API requests in the test/data/ folder.
-
 
 This command will execute the tests using both python2 and python3 (requires pytest, python2 and python3).
 ```
