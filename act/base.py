@@ -192,10 +192,10 @@ class ActBase(Schema):
 
         return self.api_request("PUT", uri, json=kwargs)
 
-    def api_get(self, uri):
+    def api_get(self, uri, params=None):
         """Send GET request to API"""
 
-        return self.api_request("GET", uri)
+        return self.api_request("GET", uri, params=params)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
