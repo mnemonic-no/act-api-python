@@ -193,7 +193,10 @@ class ActBase(Schema):
         return self.api_request("PUT", uri, json=kwargs)
 
     def api_get(self, uri, params=None):
-        """Send GET request to API"""
+        """Send GET request to API
+Args:
+    params (Dict): Parameters that are URL enncoded and sent to the API
+"""
 
         return self.api_request("GET", uri, params=params)
 
