@@ -195,6 +195,7 @@ class ActBase(Schema):
     def api_get(self, uri, params=None):
         """Send GET request to API
 Args:
+    uri (str):     URI (relative to base url). E.g. "v1/factType"
     params (Dict): Parameters that are URL enncoded and sent to the API
 """
 
