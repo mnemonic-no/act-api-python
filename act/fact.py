@@ -25,6 +25,30 @@ class RelevantObjectBindings(ActBase):
             "bidirectional_binding",
             default=False)]
 
+    def __hash__(self):
+        """
+        Hash of the object binding is the combination of
+        source/destination object and bidirectional
+        """
+
+        if self.source_object_type:
+            source = self.source_object_type.id
+        else:
+            source = None
+
+        if self.destination_object_type:
+            destination = self.destination_object_type.id
+        else:
+            destination = None
+
+
+        return hash((source, destination, self.bidirectional_binding))
+
+    def __eq__(self, other):
+        "Equality operator"
+
+        return hash(self) == hash(other)
+
 
 class RelevantFactBindings(ActBase):
     """Meta Fact Type"""
@@ -33,6 +57,16 @@ class RelevantFactBindings(ActBase):
         Field("id"),
         Field("fact_type", flatten=True),
     ]
+
+    def __hash__(self):
+        "Hash of the fact bindings is the ID itself"
+
+        return hash(self.id)
+
+    def __eq__(self, other):
+        "Equality operator"
+
+        return hash(self) == hash(other)
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -89,40 +123,39 @@ Args:
     destination_object_type (objectType):   Destination Object Type
     bidirectional_binding (boolean):        Whether the binding is bidirectional
 """
-        return self.add_bindings([
+        return self.add_object_bindings([
             RelevantObjectBindings(
                 source_object_type,
                 destination_object_type,
                 bidirectional_binding)])
 
-    def add_object_bindings(self, relevant_object_bindings):
+    def add_object_bindings(self, add_bindings):
         """Add multiple object bindings
 Args:
-    relevant_object_bindings (relevantObjectBindings[]):     List of bindings which must be a
-                                                             tuple of RelevantObjectBindings
+    add_bindings (relevantObjectBindings[]): List of bindings which must be a
+                                             tuple of RelevantObjectBindings
 """
         if not self.id:
             raise MissingField("Must have fact type ID")
 
         url = "v1/factType/uuid/{}".format(self.id)
 
-        existing_bindings = [
-            binding.serialize()
-            for binding
-            in self.relevant_object_bindings]
+        existing_bindings = set(self.relevant_object_bindings)
 
         # Exclude already existing bindings
-        serialized_bindings = [
-            binding.serialize()
+        new_bindings = [
+            binding
             for binding
-            in relevant_object_bindings
-            if binding.serialize() not in existing_bindings]
+            in add_bindings
+            if binding not in existing_bindings]
 
-        if not serialized_bindings:
+        if not new_bindings:
             warning(
                 "All bindings specified for {} already exists".format(
                     self.name))
             return self
+
+        serialized_bindings = [binding.serialize() for binding in new_bindings]
 
         fact_type = self.api_put(
             url, addObjectBindings=serialized_bindings)["data"]
@@ -131,7 +164,7 @@ Args:
         self.deserialize(**fact_type)
 
         # Emit log of created bindings
-        for binding in relevant_object_bindings:
+        for binding in new_bindings:
             info(
                 "Added bindings to fact type {}: {} -> {} (bidirectional_binding={})".format(
                     self.name, binding.source_object_type.data.get(
@@ -145,34 +178,32 @@ Args:
 Args:
     fact_type (factType):   Fact type
 """
-        return self.add_fact_bindings([fact_type])
+        return self.add_fact_bindings([RelevantFactBindings(name=fact_type.name, id=fact_type.id)])
 
-    def add_fact_bindings(self, relevant_fact_bindings):
+    def add_fact_bindings(self, add_bindings):
         """Add multiple fact bindings
 Args:
-    relevant_fact_bindings (factType[]):     List of Fact Types
+    add_bindings (relevantFactBindings[]): List of Fact bindings
 """
         if not self.id:
             raise MissingField("Must have fact type ID")
 
         url = "v1/factType/uuid/{}".format(self.id)
 
-        # Get existing fact bindings
-        existing_bindings = [
-            binding.serialize()
-            for binding
-            in self.relevant_fact_bindings]
+        existing_bindings = set(self.relevant_fact_bindings)
 
         # Exclude already existing bindings
-        serialized_bindings = [
-            binding.serialize()
+        new_bindings = [
+            binding
             for binding
-            in relevant_fact_bindings
-            if binding.serialize() not in existing_bindings]
+            in add_bindings
+            if binding not in existing_bindings]
 
-        if not serialized_bindings:
+        if not new_bindings:
             warning("All bindings specified for {} already exists".format(self.name))
             return self
+
+        serialized_bindings = [binding.serialize() for binding in new_bindings]
 
         fact_type = self.api_put(
             url, addFactBindings=serialized_bindings)["data"]
@@ -181,7 +212,7 @@ Args:
         self.deserialize(**fact_type)
 
         # Emit log of created bindings
-        for binding in relevant_fact_bindings:
+        for binding in new_bindings:
             info("Added bindings to meta fact type {}: {}".format(self.name, binding.name))
         return self
 
@@ -202,7 +233,7 @@ Args:
         return self
 
 
-class MetaFact(ActBase):
+class ReferencedFact(ActBase):
     """Retracted Fact"""
 
     SCHEMA = [
@@ -222,7 +253,7 @@ class MetaFact(ActBase):
             return False
 
         # Otherwise, use equality check from super class
-        return super(MetaFact, self).__eq__(other)
+        return super(ReferencedFact, self).__eq__(other)
 
 
 def object_serializer(obj):
@@ -250,7 +281,7 @@ class Fact(ActBase):
         Field("source", deserializer=False, serializer=False),
         Field("timestamp", serializer=False),
         Field("last_seen_timestamp", serializer=False),
-        Field("in_reference_to", deserializer=MetaFact),
+        Field("in_reference_to", deserializer=ReferencedFact),
         Field("organization", deserializer=Organization, serializer=False),
         Field("access_mode", default="Public"),
         Field("source_object", deserializer=Object),

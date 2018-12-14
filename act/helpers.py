@@ -361,15 +361,16 @@ Returns created fact type, or exisiting fact type if it already exists.
             for fact_type in fact_bindings
         ]
 
-        if name in existing_fact_types:
+        if name not in existing_fact_types:
+            # New meta fact type
+            fact_type = self.fact_type(
+                name=name, validator_parameter=validator,
+                relevant_fact_bindings=relevant_fact_bindings).add()
+        else:
             # Fact type already exists. Do not create, but update bindings
             warning("Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
             fact_type.add_fact_bindings(relevant_fact_bindings)
-        else:
-            fact_type = self.fact_type(
-                name=name, validator_parameter=validator,
-                relevant_fact_bindings=relevant_fact_bindings).add()
 
         return fact_type
 
@@ -392,17 +393,17 @@ Returns created fact type, or exisiting fact type if it already exists.
                     for fact in existing_fact_types.values()
                     if not fact.relevant_fact_bindings]
 
-        if name in existing_fact_types:
+        if name not in existing_fact_types:
+            # New meta fact - create fact with bindings to all existing (non meta) fact types
+            fact_type = self.fact_type(name=name,
+                                       validator_parameter=validator_parameter,
+                                       relevant_fact_bindings=bindings).add()
+
+        else:
             # Fact already exists. Do not create fact, but update bindings
             warning("Meta Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
 
             # Add bindings
             fact_type.add_fact_bindings(bindings)
-        else:
-            # Create fact with bindings to all existing (non meta) fact types
-            fact_type = self.fact_type(name=name,
-                                       validator_parameter=validator_parameter,
-                                       relevant_fact_bindings=bindings).add()
-
         return fact_type
