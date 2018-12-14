@@ -128,6 +128,13 @@ Args:
             return "No result"
         return "\n".join(["{}".format(item) for item in self.data])
 
+    def __bool__(self):
+        """ Return True for non empty result sets """
+        if self.size > 0:
+            return True
+
+        return False
+
     def __iter__(self):
         """Iterate over the entries"""
         return self.data.__iter__()
