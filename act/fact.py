@@ -41,7 +41,6 @@ class RelevantObjectBindings(ActBase):
         else:
             destination = None
 
-
         return hash((source, destination, self.bidirectional_binding))
 
     def __eq__(self, other):
@@ -255,6 +254,19 @@ class ReferencedFact(ActBase):
         # Otherwise, use equality check from super class
         return super(ReferencedFact, self).__eq__(other)
 
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not (self.id or self.type.name):
+            return None
+        # return default serializer
+        return super(ReferencedFact, self).serialize()
+
+    def __bool__(self):
+        # Return None for empty objects (non initialized objects)
+        if (self.type.name or self.value or self.id):
+            return True
+        return False
+
 
 def object_serializer(obj):
     if not obj:
@@ -356,8 +368,23 @@ class Fact(ActBase):
         return self
 
     def add(self):
-        """Add fact"""
+        """Add (meta) fact
+Add this fact to the platform.
 
+Reutrns the newly created fact.
+"""
+        if self.in_reference_to:
+            # This is a meta fact
+            return self.__add_meta()
+
+        # This is not a meta fact
+        return self.__add_fact()
+
+    def __add_fact(self):
+        """Add fact
+
+This is not called directly, but are called from add() if Fact is not a meta fact.
+        """
         started = time.time()
 
         # Special serializer for source/destination objects
@@ -365,17 +392,67 @@ class Fact(ActBase):
         self.data["destination_object"] = object_serializer(
             self.destination_object)
 
-        params = self.serialize()
+        params = {
+            k: v
+            for k, v in self.serialize().items()
+            if k not in ("inReferenceTo") and v
+        }
+
         fact = self.api_post("v1/fact", **params)["data"]
 
         # Empty data and load new result from response
         self.data = {}
         self.deserialize(**fact)
 
-        info("Created fact in %.2fs: data=%s" %
-             (time.time() - started, json.dumps(fact)))
+        info("Created fact in %.2fs: data=%s" % (time.time() - started, json.dumps(fact)))
 
         return self
+
+    def __add_meta(self):
+        """Add meta fact to platform
+
+This is not called directly, but are called from add() if Fact is a meta fact.
+"""
+        started = time.time()
+        if not self.in_reference_to:
+            raise MissingField("Fact is not a meta fact (in_reference_to is not set)")
+
+        if not self.in_reference_to.id:
+            raise MissingField("Referenced fact must have fact ID")
+
+        params = {
+            k: v
+            for k, v in self.serialize().items()
+            if k not in ("inReferenceTo", "bidirectionalBinding") and v
+        }
+
+        url = "v1/fact/uuid/{}/meta".format(self.in_reference_to.id)
+        meta_fact = self.api_post(url, **params)["data"]
+
+        self.data = {}
+        self.deserialize(**meta_fact)
+        info("Created meta fact in %.2fs: data=%s" % (time.time() - started, json.dumps(meta_fact)))
+
+        return self
+
+    # pylint: disable=unused-argument,dangerous-default-value
+    def meta(self, *args, **kwargs):
+        """Create meta fact
+Creates a new meta fact with reference to this fact.
+Takes the same arguments as Fact(), except for in_reference_to.
+Returns meta fact
+    """
+
+        ref = ReferencedFact(type=self.type, value=self.value, id=self.id)
+
+        meta = Fact(*args, **kwargs, in_reference_to=ref)
+
+        # Add config to meta fact (user/auth)
+        meta.configure(self.config)
+
+        return meta
+
+    # pylint: disable=unused-argument,dangerous-default-value
 
     def get_acl(self):
         """Get acl"""
@@ -453,55 +530,6 @@ Args:
 
         res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
         return act.base.ActResultSet(res, Fact)
-
-    # pylint: disable=unused-argument,dangerous-default-value
-    def add_meta(
-            self,
-            fact_type,
-            value,
-            organization=None,
-            source=None,
-            access_mode=None,
-            comment=None,
-            acl=[]):
-        """Add meta fact
-Args:
-    fact_type (str):     Fact type (name)
-    fact_value (str):    Fact value
-    organization (str):  Set owner of new Fact. If not set the current user's
-                         organization will be used (takes Organization UUID)
-    source (str):        Set Source of new Fact. If not set the current user
-                         will be used as Source (takes Source UUID)
-    access_mode:         Set access mode of new Fact. If not set the accessMode
-                         from the retracted Fact will be used = ['Public',
-                         'RoleBased', 'Explicit']
-    comment (str):       If set adds a comment to new Fact
-    acl (str[] | str):   If set defines explicitly who has access to new Fact (takes Subject UUIDs)
-
-All arguments are optional.
-
-Returns meta fact
-    """
-        params = {}
-
-        # we do not use "type" as this is reserved in python, but we need
-        # to rename it to type before we send it to the API
-        for k, v in act.utils.prepare_params(locals(), ensure_list=["acl"]).items():
-            if k == "factType":
-                k = "type"
-            params[k] = v
-
-        if self.id:
-            url = "v1/fact/uuid/{}/meta".format(self.id)
-        else:
-            raise MissingField(
-                "Must have object ID to create meta fact")
-
-        meta_fact = self.api_post(url, **params)["data"]
-
-        return Fact(**meta_fact)
-
-    # pylint: disable=unused-argument,dangerous-default-value
 
     def retract(
             self,

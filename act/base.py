@@ -135,6 +135,13 @@ Args:
 
         return False
 
+    def __repr__(self):
+        """
+        Representation of result set
+        """
+
+        return repr(self.data)
+
     def __iter__(self):
         """Iterate over the entries"""
         return self.data.__iter__()

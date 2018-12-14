@@ -122,14 +122,20 @@ Properties on objects can be retrieved by dot notation.
 ```
 
 ## Add Meta facts
-Use `add_meta()` to add meta facts (facts about facts).
+Use `meta()` to create meta facts (facts about facts).
 
 ```
->>> f = c.fact(id='6d80469f-bc73-4520-a82a-7667a6526362').get()
->>> meta = f.add_meta("observationTime", datetime.datetime.now().isoformat())
+>>> f = c.fact(id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13').get()
+>>> import time
+>>> meta = f.meta("observationTime", int(time.time()))
 >>> meta
-Fact(type='observationTime', value='2018-12-12T13:42:59.298163', in_reference_to=MetaFact(type='seenIn', value='report', id='6d80469f-bc73-4520-a82a-7667a6526362'))
+Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='seenIn', value='report', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+```
+As with facts, the meta fact is not sent to the backend, and you must use `add()` to submit it to the platform.
 
+```
+>>> meta.add()
+Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='seenIn', value='report', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
 ```
 
 ## Get Meta facts
