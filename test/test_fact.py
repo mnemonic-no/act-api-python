@@ -77,7 +77,7 @@ def test_add_meta_fact():
 
     value = mock["params"]["json"]["value"]
 
-    meta = f.add_meta("observationTime", value)
+    meta = f.meta("observationTime", value).add()
 
     assert meta.type.name == "observationTime"
     assert meta.value == value
