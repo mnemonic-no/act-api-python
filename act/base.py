@@ -128,6 +128,20 @@ Args:
             return "No result"
         return "\n".join(["{}".format(item) for item in self.data])
 
+    def __bool__(self):
+        """ Return True for non empty result sets """
+        if self.size > 0:
+            return True
+
+        return False
+
+    def __repr__(self):
+        """
+        Representation of result set
+        """
+
+        return repr(self.data)
+
     def __iter__(self):
         """Iterate over the entries"""
         return self.data.__iter__()
@@ -192,10 +206,14 @@ class ActBase(Schema):
 
         return self.api_request("PUT", uri, json=kwargs)
 
-    def api_get(self, uri):
-        """Send GET request to API"""
+    def api_get(self, uri, params=None):
+        """Send GET request to API
+Args:
+    uri (str):     URI (relative to base url). E.g. "v1/factType"
+    params (Dict): Parameters that are URL enncoded and sent to the API
+"""
 
-        return self.api_request("GET", uri)
+        return self.api_request("GET", uri, params=params)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

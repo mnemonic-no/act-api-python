@@ -11,7 +11,7 @@ from act_test import get_mock_data
 
 @responses.activate
 def test_add_fact():
-    mock = get_mock_data("data/post_v1_fact_201.json")
+    mock = get_mock_data("data/post_v1_fact_127.0.0.1_201.json")
     responses.add(
         responses.POST,
         mock["url"],
@@ -60,10 +60,33 @@ def test_add_fact():
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
 
+@responses.activate
+def test_add_meta_fact():
+    mock = get_mock_data("data/post_v1_fact_uuid_meta_201.json")
+    responses.add(
+        responses.POST,
+        mock["url"],
+        json=mock["json"],
+        status=mock["status_code"])
+
+    c = act.Act("http://localhost:8080", 1)
+
+    uuid = re.search(RE_UUID, mock["url"]).group("uuid")
+
+    f = c.fact(id=uuid)
+
+    value = mock["params"]["json"]["value"]
+
+    meta = f.meta("observationTime", value).add()
+
+    assert meta.type.name == "observationTime"
+    assert meta.value == value
+
+
 
 @responses.activate
 def test_create_fact_type():
-    mock = get_mock_data("data/post_v1_factType_201.json")
+    mock = get_mock_data("data/post_v1_factType_threatActorAlias_201.json")
     responses.add(
         responses.POST,
         mock["url"],
@@ -117,11 +140,11 @@ def test_fact_search():
     facts = c.fact_search(
         fact_type=["seenIn"],
         fact_value=["report"],
-        limit=25)
+        limit=1)
 
     assert not facts.complete
-    assert facts.size == 25
-    assert facts.count > 1000
+    assert facts.size == 1
+    assert facts.count > 1
 
     # All facts should have an UUID
     assert all([re.search(RE_UUID_MATCH, fact.id) for fact in facts])

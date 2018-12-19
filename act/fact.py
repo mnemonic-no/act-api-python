@@ -1,13 +1,14 @@
-from logging import info, warning
-import re
 import json
+import re
 import time
+from logging import info, warning
+
 import act
 from act import RE_UUID_MATCH
 
-from .schema import Field, schema_doc, MissingField, ValidationError
+from .base import ActBase, Comment, NameSpace, Organization
 from .obj import Object, ObjectType
-from .base import ActBase, Organization, NameSpace, Comment
+from .schema import Field, MissingField, ValidationError, schema_doc
 
 
 class RelevantObjectBindings(ActBase):
@@ -24,6 +25,62 @@ class RelevantObjectBindings(ActBase):
             "bidirectional_binding",
             default=False)]
 
+    def __hash__(self):
+        """
+        Hash of the object binding is the combination of
+        source/destination object and bidirectional
+        """
+
+        if self.source_object_type:
+            source = self.source_object_type.id
+        else:
+            source = None
+
+        if self.destination_object_type:
+            destination = self.destination_object_type.id
+        else:
+            destination = None
+
+        return hash((source, destination, self.bidirectional_binding))
+
+    def __eq__(self, other):
+        "Equality operator"
+
+        return hash(self) == hash(other)
+
+
+class RelevantFactBindings(ActBase):
+    """Meta Fact Type"""
+    SCHEMA = [
+        Field("name"),
+        Field("id"),
+        Field("fact_type", flatten=True),
+    ]
+
+    def __hash__(self):
+        "Hash of the fact bindings is the ID itself"
+
+        return hash(self.id)
+
+    def __eq__(self, other):
+        "Equality operator"
+
+        return hash(self) == hash(other)
+
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not self.id:
+            return None
+
+        return {"factType": self.id}
+
+    def __bool__(self):
+        # Return None for empty objects (non initialized objects)
+        if not self.id:
+            return False
+
+        return True
+
 
 class FactType(ActBase):
     """Manage FactType"""
@@ -33,7 +90,7 @@ class FactType(ActBase):
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
         Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
-        Field("relevant_fact_bindings"),
+        Field("relevant_fact_bindings", deserializer=RelevantFactBindings),
         Field("namespace", deserializer=NameSpace),
     ]
 
@@ -43,6 +100,7 @@ class FactType(ActBase):
 
     def add(self):
         params = self.serialize()
+
         fact_type = self.api_post("v1/factType", **params)["data"]
 
         # Empty data and load new result from response
@@ -53,7 +111,7 @@ class FactType(ActBase):
 
         return self
 
-    def add_binding(
+    def add_object_binding(
             self,
             source_object_type,
             destination_object_type,
@@ -64,40 +122,39 @@ Args:
     destination_object_type (objectType):   Destination Object Type
     bidirectional_binding (boolean):        Whether the binding is bidirectional
 """
-        return self.add_bindings([
+        return self.add_object_bindings([
             RelevantObjectBindings(
                 source_object_type,
                 destination_object_type,
                 bidirectional_binding)])
 
-    def add_bindings(self, relevant_object_bindings):
-        """Add multiple bindigns
+    def add_object_bindings(self, add_bindings):
+        """Add multiple object bindings
 Args:
-    relevant_object_bindings (relevantObjectBindings[]):     List of bindings which must be a
-                                                             tuple of RelevantObjectBindings
+    add_bindings (relevantObjectBindings[]): List of bindings which must be a
+                                             tuple of RelevantObjectBindings
 """
         if not self.id:
             raise MissingField("Must have fact type ID")
 
         url = "v1/factType/uuid/{}".format(self.id)
 
-        existing_bindings = [
-            binding.serialize()
-            for binding
-            in self.relevant_object_bindings]
+        existing_bindings = set(self.relevant_object_bindings)
 
         # Exclude already existing bindings
-        serialized_bindings = [
-            binding.serialize()
+        new_bindings = [
+            binding
             for binding
-            in relevant_object_bindings
-            if binding.serialize() not in existing_bindings]
+            in add_bindings
+            if binding not in existing_bindings]
 
-        if not serialized_bindings:
+        if not new_bindings:
             warning(
                 "All bindings specified for {} already exists".format(
                     self.name))
             return self
+
+        serialized_bindings = [binding.serialize() for binding in new_bindings]
 
         fact_type = self.api_put(
             url, addObjectBindings=serialized_bindings)["data"]
@@ -106,13 +163,56 @@ Args:
         self.deserialize(**fact_type)
 
         # Emit log of created bindings
-        for binding in relevant_object_bindings:
+        for binding in new_bindings:
             info(
                 "Added bindings to fact type {}: {} -> {} (bidirectional_binding={})".format(
                     self.name, binding.source_object_type.data.get(
                         "name", None), binding.destination_object_type.data.get(
                             "name", None), binding.bidirectional_binding))
 
+        return self
+
+    def add_fact_binding(self, fact_type):
+        """Add bindings
+Args:
+    fact_type (factType):   Fact type
+"""
+        return self.add_fact_bindings([RelevantFactBindings(name=fact_type.name, id=fact_type.id)])
+
+    def add_fact_bindings(self, add_bindings):
+        """Add multiple fact bindings
+Args:
+    add_bindings (relevantFactBindings[]): List of Fact bindings
+"""
+        if not self.id:
+            raise MissingField("Must have fact type ID")
+
+        url = "v1/factType/uuid/{}".format(self.id)
+
+        existing_bindings = set(self.relevant_fact_bindings)
+
+        # Exclude already existing bindings
+        new_bindings = [
+            binding
+            for binding
+            in add_bindings
+            if binding not in existing_bindings]
+
+        if not new_bindings:
+            warning("All bindings specified for {} already exists".format(self.name))
+            return self
+
+        serialized_bindings = [binding.serialize() for binding in new_bindings]
+
+        fact_type = self.api_put(
+            url, addFactBindings=serialized_bindings)["data"]
+
+        self.data = {}
+        self.deserialize(**fact_type)
+
+        # Emit log of created bindings
+        for binding in new_bindings:
+            info("Added bindings to meta fact type {}: {}".format(self.name, binding.name))
         return self
 
     def rename(self, name):
@@ -132,15 +232,40 @@ Args:
         return self
 
 
-class RetractedFact(ActBase):
+class ReferencedFact(ActBase):
     """Retracted Fact"""
 
     SCHEMA = [
         Field("type", deserializer=FactType,
               serializer=lambda fact_type: fact_type.name),
-        Field("value", default="-"),
-        Field("id", serializer=False),
+        Field("value", default=""),
+        Field("id")
     ]
+
+    def __eq__(self, other):
+        """ Check equality with other object """
+
+        # If other is None, return True if id, type and value is None
+        if other is None:
+            if not (self.id or self.type.name or self.value):
+                return True
+            return False
+
+        # Otherwise, use equality check from super class
+        return super(ReferencedFact, self).__eq__(other)
+
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not (self.id or self.type.name):
+            return None
+        # return default serializer
+        return super(ReferencedFact, self).serialize()
+
+    def __bool__(self):
+        # Return None for empty objects (non initialized objects)
+        if (self.type.name or self.value or self.id):
+            return True
+        return False
 
 
 def object_serializer(obj):
@@ -168,7 +293,7 @@ class Fact(ActBase):
         Field("source", deserializer=False, serializer=False),
         Field("timestamp", serializer=False),
         Field("last_seen_timestamp", serializer=False),
-        Field("in_reference_to", deserializer=RetractedFact, serializer=False),
+        Field("in_reference_to", deserializer=ReferencedFact),
         Field("organization", deserializer=Organization, serializer=False),
         Field("access_mode", default="Public"),
         Field("source_object", deserializer=Object),
@@ -243,8 +368,23 @@ class Fact(ActBase):
         return self
 
     def add(self):
-        """Add fact"""
+        """Add (meta) fact
+Add this fact to the platform.
 
+Reutrns the newly created fact.
+"""
+        if self.in_reference_to:
+            # This is a meta fact
+            return self.__add_meta()
+
+        # This is not a meta fact
+        return self.__add_fact()
+
+    def __add_fact(self):
+        """Add fact
+
+This is not called directly, but are called from add() if Fact is not a meta fact.
+        """
         started = time.time()
 
         # Special serializer for source/destination objects
@@ -252,17 +392,67 @@ class Fact(ActBase):
         self.data["destination_object"] = object_serializer(
             self.destination_object)
 
-        params = self.serialize()
+        params = {
+            k: v
+            for k, v in self.serialize().items()
+            if k not in ("inReferenceTo") and v
+        }
+
         fact = self.api_post("v1/fact", **params)["data"]
 
         # Empty data and load new result from response
         self.data = {}
         self.deserialize(**fact)
 
-        info("Created fact in %.2fs: data=%s" %
-             (time.time() - started, json.dumps(fact)))
+        info("Created fact in %.2fs: data=%s" % (time.time() - started, json.dumps(fact)))
 
         return self
+
+    def __add_meta(self):
+        """Add meta fact to platform
+
+This is not called directly, but are called from add() if Fact is a meta fact.
+"""
+        started = time.time()
+        if not self.in_reference_to:
+            raise MissingField("Fact is not a meta fact (in_reference_to is not set)")
+
+        if not self.in_reference_to.id:
+            raise MissingField("Referenced fact must have fact ID")
+
+        params = {
+            k: v
+            for k, v in self.serialize().items()
+            if k not in ("inReferenceTo", "bidirectionalBinding") and v
+        }
+
+        url = "v1/fact/uuid/{}/meta".format(self.in_reference_to.id)
+        meta_fact = self.api_post(url, **params)["data"]
+
+        self.data = {}
+        self.deserialize(**meta_fact)
+        info("Created meta fact in %.2fs: data=%s" % (time.time() - started, json.dumps(meta_fact)))
+
+        return self
+
+    # pylint: disable=unused-argument,dangerous-default-value
+    def meta(self, *args, **kwargs):
+        """Create meta fact
+Creates a new meta fact with reference to this fact.
+Takes the same arguments as Fact(), except for in_reference_to.
+Returns meta fact
+    """
+
+        ref = ReferencedFact(type=self.type, value=self.value, id=self.id)
+
+        meta = Fact(*args, in_reference_to=ref, **kwargs)
+
+        # Add config to meta fact (user/auth)
+        meta.configure(self.config)
+
+        return meta
+
+    # pylint: disable=unused-argument,dangerous-default-value
 
     def get_acl(self):
         """Get acl"""
@@ -316,6 +506,31 @@ Returns Fact object
         return self
 
     # pylint: disable=unused-argument,dangerous-default-value
+    def get_meta(
+            self,
+            before=None,
+            after=None,
+            limit=None):
+        """Get meta facts
+Args:
+    before (timestamp):           Only return Facts added before a specific
+                                  timestamp. Timestamp is on this format:
+                                  2016-09-28T21:26:22Z
+    after (timestamp):            Only return Facts added after a specific
+                                  timestamp. Timestamp is on this format:
+                                  2016-09-28T21:26:22Z
+    limit (integer):              Limit the number of returned Objects
+                                  (default 25, 0 means all)
+    """
+
+        params = act.utils.prepare_params(locals())
+
+        if not self.id:
+            raise MissingField("Must have fact ID to get comments")
+
+        res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
+        return act.base.ActResultSet(res, Fact)
+
     def retract(
             self,
             organization=None,
@@ -384,6 +599,7 @@ Returns retracted fact.
             else:
                 out += "->"
 
-            out += " ({}/{})".format(self.destination_object.type.name, self.destination_object.value)
+            out += " ({}/{})".format(self.destination_object.type.name,
+                                     self.destination_object.value)
 
         return out
