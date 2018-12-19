@@ -445,7 +445,7 @@ Returns meta fact
 
         ref = ReferencedFact(type=self.type, value=self.value, id=self.id)
 
-        meta = Fact(*args, **kwargs, in_reference_to=ref)
+        meta = Fact(*args, in_reference_to=ref, **kwargs)
 
         # Add config to meta fact (user/auth)
         meta.configure(self.config)
