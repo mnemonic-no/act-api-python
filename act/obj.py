@@ -131,7 +131,7 @@ class Object(ActBase):
         return result
 
     def __bool__(self):
-        """ Return True for non-empty objects """
+        """ Return False unless we either have an id or both type and value """
         if self.id or (self.type and self.value):
             return True
 
