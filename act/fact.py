@@ -395,7 +395,8 @@ This is not called directly, but are called from add() if Fact is not a meta fac
         params = {
             k: v
             for k, v in self.serialize().items()
-            if k not in ("inReferenceTo") and v
+            # Exclude inReferenceTo, which is added automatically for retracted facts and meta facts
+            if k not in ("inReferenceTo")
         }
 
         fact = self.api_post("v1/fact", **params)["data"]
