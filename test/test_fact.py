@@ -263,6 +263,7 @@ def test_fact_chain_ta_incident():
 
     assert len(chain) == 2
 
+    # There should not be any placeholder objects in the chain
     for fact in chain:
         assert not any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
 
