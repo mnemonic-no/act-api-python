@@ -641,7 +641,7 @@ Returns tuple of
         dst_links[src_str] = dst_links.get(src_str, []) + [[fact_str, dst_str]]
         src_links[dst_str] = src_links.get(dst_str, []) + [[fact_str, src_str]]
 
-        # For bidiectional bindings, the hops will be in both directions
+        # For bidirectional bindings, the hops will be in both directions
         if fact.bidirectional_binding:
             dst_links[dst_str] = dst_links.get(dst_str, []) + [[fact_str, src_str]]
             src_links[src_str] = src_links.get(src_str, []) + [[fact_str, dst_str]]
