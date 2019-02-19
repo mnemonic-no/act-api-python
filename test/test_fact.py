@@ -204,12 +204,75 @@ def test_fact_add_comment():
     c.fact(id=uuid).add_comment("Test comment")
 
 
+def test_fact_chain_incident_organization():
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("seenIn").source("uri", "http://uri.no").destination("incident", "<>"),
+        c.fact("targets").source("incident", "<>").destination("organization", "<>"),
+        c.fact("memberOf").source("organization", "<>").destination("sector", "energy"),
+    )
+
+    for fact in facts:
+        assert any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
+
+    placeholders, src_links, dst_links = act.fact.fact_chain_links(*facts)
+
+    assert len(placeholders) == 2
+
+    org_seed = act.fact.fact_chain_seed("(organization/<>)", src_links, dst_links)
+    incident_seed = act.fact.fact_chain_seed("(incident/<>)", src_links, dst_links)
+
+    seed = "(uri/http://uri.no) -seenIn:-> (incident/<>) -targets:-> (organization/<>) -memberOf:-> (sector/energy)"
+
+    assert org_seed == seed
+    assert incident_seed == seed
+
+    # Create fact chain
+    chain = act.fact.fact_chain(*facts)
+
+    assert len(chain) == 3
+
+    # There should not be any placeholders any more, since these values are replaced with
+    # hashes
+    for fact in chain:
+        assert not any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
+
 def test_fact_chain_ta_incident():
     c = act.Act("", 1)
 
     facts = (
         c.fact("seenIn").source("uri", "http://uri.no").destination("incident", "<>"),
         c.fact("attributedTo").source("incident", "<>").destination("threatActor", "APT99"),
+    )
+
+    # Ensure we have placeholder objects (objects with value "<>")
+    for fact in facts:
+        assert any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
+
+    placeholders, src_links, dst_links = act.fact.fact_chain_links(*facts)
+
+    assert len(placeholders) == 1
+
+    incident_seed = act.fact.fact_chain_seed(list(placeholders)[0], src_links, dst_links)
+
+    assert incident_seed == "(uri/http://uri.no) -seenIn:-> (incident/<>) -attributedTo:-> (threatActor/APT99)"
+
+    # Create fact chain
+    chain = act.fact.fact_chain(*facts)
+
+    assert len(chain) == 2
+
+    for fact in chain:
+        assert not any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
+
+def test_fact_chain_incident_tool():
+    """Example with multiple incoming links (which should be grouped)"""
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("seenIn").source("uri", "http://uri.no").destination("incident", "<>"),
+        c.fact("seenIn").source("tool", "mimikatz").destination("incident", "<>"),
     )
 
     for fact in facts:
@@ -219,13 +282,7 @@ def test_fact_chain_ta_incident():
 
     assert len(placeholders) == 1
 
-    seed = act.fact.fact_chain_seed(list(placeholders)[0], src_links, dst_links)
+    incident_seed = act.fact.fact_chain_seed("(incident/<>)", src_links, dst_links)
 
-    assert seed == "[(uri/http://uri.no) -seenIn:-> ] (incident/<>) [ -attributedTo:-> (threatActor/APT99)]"
+    assert incident_seed == "[(tool/mimikatz) -seenIn:-> ,(uri/http://uri.no) -seenIn:-> ](incident/<>)"
 
-    chain = act.fact.fact_chain(*facts)
-
-    for fact in chain:
-        assert not any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
-
-    assert len(chain) == 2
