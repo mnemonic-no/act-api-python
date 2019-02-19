@@ -1,7 +1,9 @@
 import re
+
 import responses
+
 import act
-from act import RE_UUID_MATCH, RE_TIMESTAMP_MATCH, RE_UUID, RE_TIMESTAMP
+from act import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
 from act.fact import Fact
 from act.obj import Object
 from act_test import get_mock_data
@@ -60,6 +62,7 @@ def test_add_fact():
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
 
+
 @responses.activate
 def test_add_meta_fact():
     mock = get_mock_data("data/post_v1_fact_uuid_meta_201.json")
@@ -81,7 +84,6 @@ def test_add_meta_fact():
 
     assert meta.type.name == "observationTime"
     assert meta.value == value
-
 
 
 @responses.activate
@@ -200,3 +202,30 @@ def test_fact_add_comment():
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
 
     c.fact(id=uuid).add_comment("Test comment")
+
+
+def test_fact_chain_ta_incident():
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("seenIn").source("uri", "http://uri.no").destination("incident", "<>"),
+        c.fact("attributedTo").source("incident", "<>").destination("threatActor", "APT99"),
+    )
+
+    for fact in facts:
+        assert any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
+
+    placeholders, src_links, dst_links = act.fact.fact_chain_links(*facts)
+
+    assert len(placeholders) == 1
+
+    seed = act.fact.fact_chain_seed(list(placeholders)[0], src_links, dst_links)
+
+    assert seed == "[(uri/http://uri.no) -seenIn:-> ] (incident/<>) [ -attributedTo:-> (threatActor/APT99)]"
+
+    chain = act.fact.fact_chain(*facts)
+
+    for fact in chain:
+        assert not any([fact.source_object.value == "<>", fact.destination_object.value == "<>"])
+
+    assert len(chain) == 2

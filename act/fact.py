@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import time
@@ -604,3 +605,83 @@ Returns retracted fact.
                                      self.destination_object.value)
 
         return out
+
+
+def fact_chain_links(*facts):
+    """
+    Build a dictionary of all next (destination) and previous (source) hops for
+    all facts.
+    """
+    placeholders = set()
+
+    src_links = {}
+    dst_links = {}
+
+    # Loop over all facts
+    # for all placeholder (objects with value "<>") - save incoming/outgoing
+    # links in src_links and dst_links respectivly
+    for fact in facts:
+        fact_str = "{}:{}".format(fact.type.name, fact.value)
+
+        src_str = str(fact.source_object)
+        dst_str = str(fact.destination_object)
+
+        dst_links[src_str] = dst_links.get(src_str, []) + [[fact_str, dst_str]]
+        src_links[dst_str] = src_links.get(dst_str, []) + [[fact_str, src_str]]
+
+        if fact.bidirectional_binding:
+            dst_links[dst_str] = dst_links.get(dst_str, []) + [[fact_str, src_str]]
+            src_links[src_str] = src_links.get(src_str, []) + [[fact_str, dst_str]]
+
+        if fact.source_object.value == "<>":
+            placeholders.update((src_str,))
+        if fact.destination_object.value == "<>":
+            placeholders.update((dst_str,))
+
+    return placeholders, src_links, dst_links
+
+
+def fact_chain_seed(placeholder, src_links, dst_links):
+    """
+    """
+
+    return "{} {} {}".format(
+        fact_chain_path(placeholder, src_links, forward=False),
+        placeholder,
+        fact_chain_path(placeholder, dst_links, forward=True))
+
+
+def fact_chain_path(obj, links, forward=True):
+    paths = []
+
+    for (fact, next_obj) in links.get(obj, []):
+        if forward:
+            paths.append(fact_chain_path(next_obj, links, forward=forward) +
+                         " -{}-> {}".format(fact, next_obj))
+        else:
+            paths.append("{} -{}-> ".format(next_obj, fact) +
+                         fact_chain_path(next_obj, links, forward=forward))
+
+    if not paths:
+        return ""
+
+    return "[{}]".format(",".join(sorted(paths)))
+
+
+def fact_chain(*facts):
+    """
+    """
+
+    placeholders, src_links, dst_links = act.fact.fact_chain_links(*facts)
+
+    hashes = {
+        ph: hashlib.sha256(fact_chain_seed(ph, src_links, dst_links).encode("utf8")).hexdigest()
+        for ph in placeholders
+    }
+
+    for fact in facts:
+        for obj in (fact.source_object, fact.destination_object):
+            if obj.value == "<>":
+                obj.value = hashes[str(obj)]
+
+    return facts
