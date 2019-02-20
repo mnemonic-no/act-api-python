@@ -7,6 +7,7 @@ from logging import info, warning
 
 import act
 from act import RE_UUID_MATCH
+import collections
 
 from .base import ActBase, Comment, NameSpace, Organization
 from .obj import Object, ObjectType
@@ -626,25 +627,29 @@ Returns tuple of
 
     placeholders = set()
 
-    src_links = {}
-    dst_links = {}
+    src_links = collections.defaultdict(list)
+    dst_links = collections.defaultdict(list)
 
     # Loop over all facts
     # for all placeholder (objects with value "<>") - save incoming/outgoing
     # links in src_links and dst_links respectivly
     for fact in facts:
-        fact_str = "{}:{}".format(fact.type.name, fact.value)
+        fact_str = fact.type.name
+
+        if fact.value and not fact.value.startswith("-"):
+            fact_str += "/{}".format(fact.value)
+
 
         src_str = str(fact.source_object)
         dst_str = str(fact.destination_object)
 
-        dst_links[src_str] = dst_links.get(src_str, []) + [[fact_str, dst_str]]
-        src_links[dst_str] = src_links.get(dst_str, []) + [[fact_str, src_str]]
+        dst_links[src_str].append([fact_str, dst_str])
+        src_links[dst_str].append([fact_str, src_str])
 
         # For bidirectional bindings, the hops will be in both directions
         if fact.bidirectional_binding:
-            dst_links[dst_str] = dst_links.get(dst_str, []) + [[fact_str, src_str]]
-            src_links[src_str] = src_links.get(src_str, []) + [[fact_str, dst_str]]
+            dst_links[dst_str].append([fact_str, src_str])
+            src_links[src_str].append([fact_str, dst_str])
 
         # Add object to known set of known placeholders if is "<>"
         if fact.source_object.value == "<>":
@@ -693,11 +698,11 @@ Returns: string representation of the path
 
     for (fact, next_obj) in links.get(obj, []):
         if forward:
-            paths.append(" -{}-> {}".format(fact, next_obj) +
+            paths.append(" -[{}]-> {}".format(fact, next_obj) +
                          fact_chain_path(next_obj, links, forward=forward))
         else:
             paths.append(fact_chain_path(next_obj, links, forward=forward) +
-                         "{} -{}-> ".format(next_obj, fact))
+                         "{} -[{}]-> ".format(next_obj, fact))
 
     # No more links
     if not paths:
@@ -725,21 +730,21 @@ Returns: facts [Facts]: ACT facts
     """
 
     # Get all placeholders and incoming, outgoing links
-    placeholders, src_links, dst_links=act.fact.fact_chain_links(*facts)
+    placeholders, src_links, dst_links = act.fact.fact_chain_links(*facts)
 
     # Calculate the hash for all placeholder objects,
     # based on the path of incoming/outgoing links from the placeholder
-    hashes={
+    hashes = {
         ph: hashlib.sha256(fact_chain_seed(ph, src_links, dst_links).encode("utf8")).hexdigest()
         for ph in placeholders
     }
 
-    chain=copy.copy(facts)
+    chain = copy.copy(facts)
 
     # Return the fact chain, with all object values replace with the hash
     for fact in chain:
         for obj in (fact.source_object, fact.destination_object):
             if obj.value == "<>":
-                obj.value=hashes[str(obj)]
+                obj.value = hashes[str(obj)]
 
     return chain
