@@ -351,7 +351,7 @@ Facts are immutable, so it is not possible to update the ObjectType and FactType
 ```
 
 # Tests
-Tests (written in pytest) are contained in the test/ folder. Mock objects are available for for most API requests in the test/data/ folder.
+Tests (written in pytest) are contained in the test/ folder. Mock objects are available for most API requests in the test/data/ folder.
 
 This command will execute the tests using both python2 and python3 (requires pytest, python2 and python3).
 ```
