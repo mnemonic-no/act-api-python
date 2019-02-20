@@ -651,7 +651,7 @@ Returns tuple of
             dst_links[dst_str].append([fact_str, src_str])
             src_links[src_str].append([fact_str, dst_str])
 
-        # Add object to known set of known placeholders if is "<>"
+        # Add object to set of known placeholders if value is "<>"
         if fact.source_object.value == "<>":
             placeholders.update((src_str,))
         if fact.destination_object.value == "<>":
