@@ -1,3 +1,4 @@
+import collections
 import copy
 import hashlib
 import json
@@ -7,7 +8,6 @@ from logging import info, warning
 
 import act
 from act import RE_UUID_MATCH
-import collections
 
 from .base import ActBase, Comment, NameSpace, Organization
 from .obj import Object, ObjectType
@@ -636,9 +636,9 @@ Returns tuple of
     for fact in facts:
         fact_str = fact.type.name
 
+        # String representation of fact
         if fact.value and not fact.value.startswith("-"):
             fact_str += "/{}".format(fact.value)
-
 
         src_str = str(fact.source_object)
         dst_str = str(fact.destination_object)
