@@ -745,6 +745,6 @@ Returns: facts [Facts]: ACT facts
     for fact in chain:
         for obj in (fact.source_object, fact.destination_object):
             if obj.value == "<>":
-                obj.value = hashes[str(obj)]
+                obj.value = "-{}".format(hashes[str(obj)])
 
     return chain
