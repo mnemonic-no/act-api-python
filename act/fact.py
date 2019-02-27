@@ -645,7 +645,7 @@ Returns tuple of
         if fact.source_object.value != "*" and fact.destination_object.value != "*":
             raise IllegalFactChain(
                 "Fact chain should not include facts without placeholders. " +
-                "Create multiple chains instead and exclude known facts.")
+                "Create multiple chains instead and exclude known facts:\n{}".format(fact))
 
         src_str = str(fact.source_object)
         dst_str = str(fact.destination_object)
