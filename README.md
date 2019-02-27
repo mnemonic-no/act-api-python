@@ -350,6 +350,25 @@ Facts are immutable, so it is not possible to update the ObjectType and FactType
 >>>> dropped_by.add_binding(source_object_type=filename, destination_object_type=hash)
 ```
 
+## Fact Chains
+
+Fact chain is currently a experimental concept, that supports chains of fact, where some of the objects in the chain can unknowns / placeholders.
+
+The unknowns are marked using value "*". And after the chain is created they will get a special value "[placeholder[<HASH>]]", where the HASH is caclulated based on the incoming/outgoing paths from the placeholder.
+
+```
+>>> facts = (
+        c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
+        c.fact("targets").source("incident", "*").destination("organization", "*"),
+        c.fact("memberOf").source("organization", "*").destination("sector", "energy"),
+    )
+>>> chain = act.fact.fact_chain(*facts)
+>>>> for fact in chain:
+        fact.add()
+```
+
+This feature should be considered experimental and are subject to change. It is implemented client side and the backend does not have the notion of what a fact chain is at the moment, but the frontned will currently show the value in a more user friendly way.
+
 # Tests
 Tests (written in pytest) are contained in the test/ folder. Mock objects are available for most API requests in the test/data/ folder.
 

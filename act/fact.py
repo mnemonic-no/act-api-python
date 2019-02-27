@@ -14,6 +14,11 @@ from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
 
 
+class IllegalFactChain(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
 class RelevantObjectBindings(ActBase):
     SCHEMA = [
         Field(
@@ -631,14 +636,16 @@ Returns tuple of
     dst_links = collections.defaultdict(list)
 
     # Loop over all facts
-    # for all placeholder (objects with value "<>") - save incoming/outgoing
+    # for all placeholder (objects with value "*") - save incoming/outgoing
     # links in src_links and dst_links respectivly
     for fact in facts:
-        fact_str = fact.type.name
+        fact_str = "{}/{}".format(fact.type.name, fact.value)
 
-        # String representation of fact
-        if fact.value and not fact.value.startswith("-"):
-            fact_str += "/{}".format(fact.value)
+        # Either source or destination object should be a placeholder
+        if fact.source_object.value != "*" and fact.destination_object.value != "*":
+            raise IllegalFactChain(
+                "Fact chain should not include facts without placeholders. " +
+                "Create multiple chains instead and exlude known facts.")
 
         src_str = str(fact.source_object)
         dst_str = str(fact.destination_object)
@@ -651,10 +658,10 @@ Returns tuple of
             dst_links[dst_str].append([fact_str, src_str])
             src_links[src_str].append([fact_str, dst_str])
 
-        # Add object to set of known placeholders if value is "<>"
-        if fact.source_object.value == "<>":
+        # Add object to set of known placeholders if value is "*"
+        if fact.source_object.value == "*":
             placeholders.update((src_str,))
-        if fact.destination_object.value == "<>":
+        if fact.destination_object.value == "*":
             placeholders.update((dst_str,))
 
     return placeholders, src_links, dst_links
@@ -709,11 +716,12 @@ Returns: string representation of the path
         return ""
 
     if len(paths) > 1:
-        # Enclose in brackets, since we can have more than one path, and we would
-        # like to group these paths using ","
+        # We have more than one path to follow, so we must sort the paths,
+        # join them with "," and enclose them in brackes, eg:
+        # [(tool/mimikatz) -[seenIn]-> ,(uri/http://uri.no) -[seenIn]-> ]
         return "[{}]".format(",".join(sorted(paths)))
-    else:
-        return paths[0]
+
+    return paths[0]
 
 
 def fact_chain(*facts):
@@ -741,10 +749,10 @@ Returns: facts [Facts]: ACT facts
 
     chain = copy.copy(facts)
 
-    # Return the fact chain, with all object values replace with the hash
+    # Return the fact chain, with all object values replaced "[placeholder[<HASH>]]"
     for fact in chain:
         for obj in (fact.source_object, fact.destination_object):
-            if obj.value == "<>":
-                obj.value = "<{}>".format(hashes[str(obj)])
+            if obj.value == "*":
+                obj.value = "[placeholder[{}]]".format(hashes[str(obj)])
 
     return chain
