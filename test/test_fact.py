@@ -1,7 +1,10 @@
 import re
+
+import pytest
 import responses
+
 import act
-from act import RE_UUID_MATCH, RE_TIMESTAMP_MATCH, RE_UUID, RE_TIMESTAMP
+from act import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
 from act.fact import Fact
 from act.obj import Object
 from act_test import get_mock_data
@@ -60,6 +63,7 @@ def test_add_fact():
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
 
+
 @responses.activate
 def test_add_meta_fact():
     mock = get_mock_data("data/post_v1_fact_uuid_meta_201.json")
@@ -81,7 +85,6 @@ def test_add_meta_fact():
 
     assert meta.type.name == "observationTime"
     assert meta.value == value
-
 
 
 @responses.activate
@@ -200,3 +203,118 @@ def test_fact_add_comment():
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
 
     c.fact(id=uuid).add_comment("Test comment")
+
+
+def test_fact_chain_incident_organization():
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
+        c.fact("targets").source("incident", "*").destination("organization", "*"),
+        c.fact("memberOf").source("organization", "*").destination("sector", "energy"),
+    )
+
+    for fact in facts:
+        assert any([fact.source_object.value == "*", fact.destination_object.value == "*"])
+
+    seed = act.fact.fact_chain_seed(*facts)
+
+    assert seed == "(incident/*) -[targets]-> (organization/*)\n" + \
+                   "(organization/*) -[memberOf]-> (sector/energy)\n" + \
+                   "(uri/http://uri.no) -[observedIn]-> (incident/*)"
+
+    # Create fact chain
+    chain = act.fact.fact_chain(*facts)
+
+    assert len(chain) == 3
+
+    # There should not be any placeholders any more, since these values are replaced with
+    # hashes
+    for fact in chain:
+        assert not any([fact.source_object.value == "*", fact.destination_object.value == "*"])
+
+
+def test_fact_chain_ta_incident():
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
+        c.fact("attributedTo").source("incident", "*").destination("threatActor", "APT99"),
+    )
+
+    # Ensure we have placeholder objects (objects with value "*")
+    for fact in facts:
+        assert any([fact.source_object.value == "*", fact.destination_object.value == "*"])
+
+    incident_seed = act.fact.fact_chain_seed(*facts)
+
+    assert incident_seed == "(incident/*) -[attributedTo]-> (threatActor/APT99)\n" + \
+                            "(uri/http://uri.no) -[observedIn]-> (incident/*)"
+
+    # Create fact chain
+    chain = act.fact.fact_chain(*facts)
+
+    assert len(chain) == 2
+
+    # There should not be any placeholder objects in the chain
+    for fact in chain:
+        assert not any([fact.source_object.value == "*", fact.destination_object.value == "*"])
+
+
+def test_fact_chain_incident_tool():
+    """Example with multiple incoming links (which should be grouped)"""
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
+        c.fact("observedIn").source("tool", "mimikatz").destination("incident", "*"),
+    )
+
+    for fact in facts:
+        assert any([fact.source_object.value == "*", fact.destination_object.value == "*"])
+
+    incident_seed = act.fact.fact_chain_seed(*facts)
+
+    assert incident_seed == "(tool/mimikatz) -[observedIn]-> (incident/*)\n" + \
+                            "(uri/http://uri.no) -[observedIn]-> (incident/*)"
+
+
+
+def test_fact_chain_tool_ta():
+    """Example with multiple incoming links (which should be grouped)"""
+    c = act.Act("", 1)
+
+    facts_windshield = (
+        c.fact("attributedTo").source("incident", "*").destination("threatActor", "APT32"),
+        c.fact("observedIn", "incident").source("content", "*").destination("incident", "*"),
+        c.fact("classifiedAs").source("content", "*").destination("tool", "windshield"),
+    )
+
+    facts_mimikatz = (
+        c.fact("attributedTo").source("incident", "*").destination("threatActor", "APT32"),
+        c.fact("observedIn", "incident").source("content", "*").destination("incident", "*"),
+        c.fact("classifiedAs").source("content", "*").destination("tool", "mimikatz"),
+    )
+
+    windshield_seed = act.fact.fact_chain_seed(*facts_windshield)
+    mimikatz_seed = act.fact.fact_chain_seed(*facts_mimikatz)
+
+    assert windshield_seed == "(content/*) -[classifiedAs]-> (tool/windshield)\n" + \
+                              "(content/*) -[observedIn/incident]-> (incident/*)\n" + \
+                              "(incident/*) -[attributedTo]-> (threatActor/APT32)"
+
+    assert windshield_seed != mimikatz_seed
+
+
+def test_fact_chain_illegal_tool():
+    """Example with multiple incoming links (which should be grouped)"""
+    c = act.Act("", 1)
+
+    facts = (
+        c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident"),
+        c.fact("observedIn").source("tool", "mimikatz").destination("incident", "*"),
+    )
+
+    # Create fact chain
+    with pytest.raises(act.fact.IllegalFactChain):
+        act.fact.fact_chain(*facts)
