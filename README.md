@@ -369,6 +369,8 @@ The unknowns are marked using value "*". And after the chain is created they wil
 
 This feature should be considered experimental and are subject to change. It is implemented client side and the backend does not have the notion of what a fact chain is at the moment, but the frontned will currently show the value in a more user friendly way.
 
+Also note that adding facts in a chain as shown above is NOT atomic, and might lead to inconsistencies if some of the facts does not pass validation in the backend.
+
 # Tests
 Tests (written in pytest) are contained in the test/ folder. Mock objects are available for most API requests in the test/data/ folder.
 
