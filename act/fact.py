@@ -1,3 +1,6 @@
+import collections
+import copy
+import hashlib
 import json
 import re
 import time
@@ -9,6 +12,11 @@ from act import RE_UUID_MATCH
 from .base import ActBase, Comment, NameSpace, Organization
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
+
+
+class IllegalFactChain(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
 
 
 class RelevantObjectBindings(ActBase):
@@ -604,3 +612,55 @@ Returns retracted fact.
                                      self.destination_object.value)
 
         return out
+
+
+def fact_chain_seed(*facts):
+    """
+    Get seed of the fact chain. The seed is the string representations of all facts sorted
+    and joined with newline.
+
+Args:
+    *facts [Facts]: ACT facts
+
+Returns: string representation of the seed
+    """
+
+    known_objects = [fact.source_object
+                     for fact in facts
+                     if fact.source_object.value != "*"] + \
+                    [fact.destination_object
+                     for fact in facts
+                     if fact.destination_object.value != "*"]
+
+    if len(known_objects) != 2:
+        raise IllegalFactChain(
+            "There should be exactly two known objects in a fact chain: {}".format(facts))
+
+    return "\n".join(sorted([str(fact) for fact in facts]))
+
+
+def fact_chain(*facts):
+    """
+    Return fact chain of all facts.
+    A fact chain is a modified version of the facts, where all placeholder
+    object values are replace with a hash using the all incoming/outgoing
+    links from the placeholder as a seed
+
+Args:
+    *facts [Facts]: ACT facts
+
+Returns: facts [Facts]: ACT facts
+    """
+
+    # Calculate the hash for this chain, based on the seed
+    sha256sum = hashlib.sha256(fact_chain_seed(*facts).encode("utf8")).hexdigest()
+
+    chain = copy.copy(facts)
+
+    # Return the fact chain, with all object values replaced "[placeholder[<HASH>]]"
+    for fact in chain:
+        for obj in (fact.source_object, fact.destination_object):
+            if obj.value == "*":
+                obj.data["value"] = "[placeholder[{}]]".format(sha256sum)
+
+    return chain
