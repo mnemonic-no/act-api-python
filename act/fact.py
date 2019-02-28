@@ -614,114 +614,29 @@ Returns retracted fact.
         return out
 
 
-def fact_chain_links(*facts):
+def fact_chain_seed(*facts):
     """
-    Build a dictionary of all next (destination) and previous (source) hops for
-    all facts.
-
-    A string representation of the objects / facts are used.
+    Get seed of the fact chain. The seed is the string representations of all facts sorted
+    and joined with newline.
 
 Args:
     *facts [Facts]: ACT facts
 
-Returns tuple of
-    placeholders set(str): string represeantion of placeholder objects
-    src_links Dict[str]: Dictionary of next "source" hops from all objects
-    dst_links Dict[str]: Dictionary of next "destination" hops from all objects
-    """
-
-    placeholders = set()
-
-    src_links = collections.defaultdict(list)
-    dst_links = collections.defaultdict(list)
-
-    # Loop over all facts
-    # for all placeholder (objects with value "*") - save incoming/outgoing
-    # links in src_links and dst_links respectivly
-    for fact in facts:
-        fact_str = "{}/{}".format(fact.type.name, fact.value)
-
-        # Either source or destination object should be a placeholder
-        if fact.source_object.value != "*" and fact.destination_object.value != "*":
-            raise IllegalFactChain(
-                "Fact chain should not include facts without placeholders. " +
-                "Create multiple chains instead and exclude known facts:\n{}".format(fact))
-
-        src_str = str(fact.source_object)
-        dst_str = str(fact.destination_object)
-
-        dst_links[src_str].append([fact_str, dst_str])
-        src_links[dst_str].append([fact_str, src_str])
-
-        # For bidirectional bindings, the hops will be in both directions
-        if fact.bidirectional_binding:
-            dst_links[dst_str].append([fact_str, src_str])
-            src_links[src_str].append([fact_str, dst_str])
-
-        # Add object to set of known placeholders if value is "*"
-        if fact.source_object.value == "*":
-            placeholders.update((src_str,))
-        if fact.destination_object.value == "*":
-            placeholders.update((dst_str,))
-
-    return placeholders, src_links, dst_links
-
-
-def fact_chain_seed(placeholder, src_links, dst_links):
-    """
-    Get seed of placeholder object. The seed is a string representation
-    of the object itself and all incoming and outgoing paths.
-
-    All arguments for this method are normally the result of
-    calling fact_chain_links().
-
-Args:
-    placeholders set(str): string represeantion of placeholder objects
-    src_links Dict[str]: Dictionary of next "source" hops from all objects
-    dst_links Dict[str]: Dictionary of next "destination" hops from all objects
-
 Returns: string representation of the seed
     """
 
-    return "{}{}{}".format(
-        fact_chain_path(placeholder, src_links, forward=False),
-        placeholder,
-        fact_chain_path(placeholder, dst_links, forward=True))
+    known_objects = [fact.source_object
+                     for fact in facts
+                     if fact.source_object.value != "*"] + \
+                    [fact.destination_object
+                     for fact in facts
+                     if fact.destination_object.value != "*"]
 
+    if len(known_objects) != 2:
+        raise IllegalFactChain(
+            "There should be exactly two known objects in a fact chain: {}".format(facts))
 
-def fact_chain_path(obj, links, forward=True):
-    """
-    Recursive method to construct a string representation of the
-    path from a given object.
-
-Args:
-    obj (str): string represeantion of starting object
-    links Dict[str]: Dictionary of next hops from all objects in fact chain
-    forward (bool): If true interpret as destination links, e.g. all hops are destinations
-                    If false interpret as source links, e.g. all hops are sources
-Returns: string representation of the path
-    """
-    paths = []
-
-    for (fact, next_obj) in links.get(obj, []):
-        if forward:
-            paths.append(" -[{}]-> {}".format(fact, next_obj) +
-                         fact_chain_path(next_obj, links, forward=forward))
-        else:
-            paths.append(fact_chain_path(next_obj, links, forward=forward) +
-                         "{} -[{}]-> ".format(next_obj, fact))
-
-    # No more links
-    if not paths:
-        return ""
-
-    if len(paths) > 1:
-        # We have more than one path to follow, so we must sort the paths,
-        # join them with "," and enclose them in brackes, eg:
-        # [(tool/mimikatz) -[seenIn]-> ,(uri/http://uri.no) -[seenIn]-> ]
-        return "[{}]".format(",".join(sorted(paths)))
-
-    return paths[0]
+    return "\n".join(sorted([str(fact) for fact in facts]))
 
 
 def fact_chain(*facts):
@@ -737,15 +652,8 @@ Args:
 Returns: facts [Facts]: ACT facts
     """
 
-    # Get all placeholders and incoming, outgoing links
-    placeholders, src_links, dst_links = act.fact.fact_chain_links(*facts)
-
-    # Calculate the hash for all placeholder objects,
-    # based on the path of incoming/outgoing links from the placeholder
-    hashes = {
-        ph: hashlib.sha256(fact_chain_seed(ph, src_links, dst_links).encode("utf8")).hexdigest()
-        for ph in placeholders
-    }
+    # Calculate the hash for this chain, based on the seed
+    sha256sum = hashlib.sha256(fact_chain_seed(*facts).encode("utf8")).hexdigest()
 
     chain = copy.copy(facts)
 
@@ -753,6 +661,6 @@ Returns: facts [Facts]: ACT facts
     for fact in chain:
         for obj in (fact.source_object, fact.destination_object):
             if obj.value == "*":
-                obj.value = "[placeholder[{}]]".format(hashes[str(obj)])
+                obj.data["value"] = "[placeholder[{}]]".format(sha256sum)
 
     return chain
