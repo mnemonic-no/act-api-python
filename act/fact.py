@@ -579,6 +579,13 @@ Returns retracted fact.
 
         return self
 
+    def __hash__(self):
+        """
+        Hash of the fact. We use the string representation of the fact as seed.
+        """
+
+        return hash(str(self))
+
     def __str__(self):
         """
         Construnct string representation on this format
