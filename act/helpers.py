@@ -1,3 +1,4 @@
+import functools
 import itertools
 import logging
 import sys
@@ -18,6 +19,19 @@ def as_list(value):
         return [value]
 
     return value
+
+
+@functools.lru_cache(4096)
+def handle_fact(fact: Fact) -> None:
+    """
+    add fact if we configured act_baseurl - if not print fact
+    This function has a lru cache with size 4096, so duplicates that
+    occur within this cache will be ignore.
+    """
+    if fact.config.act_baseurl:  # type: ignore
+        fact.add()
+    else:
+        print(fact)
 
 
 class Act(ActBase):
