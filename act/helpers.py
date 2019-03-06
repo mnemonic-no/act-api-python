@@ -26,7 +26,7 @@ def handle_fact(fact: Fact) -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
-    occur within this cache will be ignore.
+    occur within this cache will be ignored.
     """
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
