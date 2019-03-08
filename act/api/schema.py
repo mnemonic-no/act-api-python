@@ -215,9 +215,6 @@ class Schema(object):
         return self.data[key]
 
     def __getattr__(self, attr):
-        """
-        Get attribute from schema
-        """
         if attr in self.__dict__.get("data", {}):
             return self.__dict__["data"][attr]
 
