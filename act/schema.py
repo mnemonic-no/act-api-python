@@ -215,8 +215,8 @@ class Schema(object):
         return self.data[key]
 
     def __getattr__(self, attr):
-        if attr in self.data:
-            return self.data[attr]
+        if attr in self.__dict__.get("data", {}):
+            return self.__dict__["data"][attr]
 
         raise AttributeError(
             # pylint: disable=too-many-format-args
