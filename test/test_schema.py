@@ -1,6 +1,7 @@
 import uuid
 import copy
 import re
+import pickle
 import random
 import pytest
 from act.schema import Schema, Field
@@ -93,9 +94,7 @@ object_test_data = {
     "direction": "FactIsDestination"
 }
 
-
-def test_schema():
-
+def __test_data():
     # Generate test data
     objects = []
     for _ in range(0, 5):  # Generate random facts
@@ -108,7 +107,11 @@ def test_schema():
     fact = copy.copy(fact_test_data)
     fact["objects"] = objects
 
-    f = Fact(**fact)
+    return Fact(**fact)
+
+
+def test_schema():
+    f = __test_data()
     assert re.search(RE_UUID_MATCH, f.id)
     assert re.search(RE_UUID_MATCH, f.type.id)
     assert re.search(RE_TIMESTAMP_MATCH, f.timestamp)
@@ -129,3 +132,29 @@ def test_schema():
 
     # When serialized, we should get back data in "object"
     assert isinstance(f.serialize()["bindings"][0]["object"], dict)
+
+
+def test_pickle():
+    """
+    Test that we can pickle and unpickle a schema object and get the same schema
+    """
+    fact = __test_data()
+
+    pickled_fact = pickle.dumps(fact)
+
+    assert fact == pickle.loads(pickled_fact)
+
+
+def test_set_get():
+    f = __test_data()
+
+    # type.name should be seenIn, both when referenced using dot
+    # notation and when obtaining value through data dictionary
+    assert f.type.name == "seenIn"
+    assert f.data["type"].data["name"] == "seenIn"
+
+    # Verify that we can set schema attributes directly using dot notation
+    f.type.name = "mentions"
+
+    # The name should then be the same when we reference it from the data dictionary
+    assert f.data["type"].data["name"] == "mentions"
