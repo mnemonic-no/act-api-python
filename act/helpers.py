@@ -6,7 +6,7 @@ import re
 import sys
 import urllib.parse
 from ipaddress import AddressValueError, IPv4Address
-from logging import error, warning
+from logging import warning
 from typing import List, Optional
 
 import act
