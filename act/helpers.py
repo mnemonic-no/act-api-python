@@ -447,19 +447,13 @@ Return: List of facts
     path = my_uri.path
     query = my_uri.query
     addr = my_uri.hostname
-
-    port = str(my_uri.port) if my_uri.port else None
+    port = my_uri.port
 
     try:
         # Is address an ipv4 or ipv6?
         ip = ipaddress.ip_address(addr)
-        if ip.version == 4:
-            addr_type = "ipv4"
-        elif ip.version == 6:
-            addr_type = "ipv6"
-        else:
-            raise ipaddress.AddressValueError("Address is neither ipv4 or ipv6:{}".format(addr))
-
+        addr_type = "ipv{}".format(ip.version)
+        addr = str(ip)
     except ValueError:
         addr_type = "fqdn"
 
@@ -470,7 +464,7 @@ Return: List of facts
 
     if port:
         facts.append(
-            actapi.fact("port", port)
+            actapi.fact("port", str(port))
             .source("uri", uri))
 
     facts.append(
