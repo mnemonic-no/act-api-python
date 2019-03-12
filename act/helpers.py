@@ -1,8 +1,13 @@
 import functools
 import itertools
 import logging
+import os
+import re
 import sys
-from logging import warning
+import urllib.parse
+from ipaddress import AddressValueError, IPv4Address
+from logging import error, warning
+from typing import List, Optional
 
 import act
 
@@ -64,8 +69,7 @@ class Act(ActBase):
             raise ValueError('Invalid log level: %s' % log_level)
 
         datefmt = "%Y-%m-%d %H:%M:%S"
-        formatter = "[%(asctime)s] app=" + log_prefix + \
-            " level=%(levelname)s msg=%(message)s"
+        formatter = "[%(asctime)s] app=" + log_prefix + " level=%(levelname)s msg=%(message)s"
 
         if log_file:
             logging.basicConfig(
@@ -421,3 +425,80 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Add bindings
             fact_type.add_fact_bindings(bindings)
         return fact_type
+
+
+def handle_uri(actapi: Act, uri: str) -> None:
+    """
+    Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+    """
+    for fact in uri_facts(actapi, uri):
+        handle_fact(fact)
+
+
+def uri_facts(actapi: Act, uri: str) -> List[Fact]:
+    """Get a list of all facts (componentOf, scheme, path, basename) from an URI
+
+Return: List of facts
+"""
+    facts = []
+
+    (scheme, netloc, path, _, query, _) = urllib.parse.urlparse(uri)
+
+    # Default - no port an addr == netloc
+    port: Optional[str] = None
+    addr = netloc
+
+    netloc_ipv6 = re.search(r"^\[(?P<addr>[^\]]+)\](:(?P<port>\d+))?$", addr)
+
+    # ipv6
+    if netloc_ipv6:
+        addr_type = "ipv6"
+        addr = netloc_ipv6.group("addr")
+        port = netloc_ipv6.group("port")
+
+    else:  # ipv4 or fqdn
+        # Override addr and port by extracting address and port
+        if ":" in netloc and len(netloc.split(":")) == 2:
+            (addr, port) = netloc.split(":")
+
+        try:
+            # Is address an IPv4Address?
+            addr = str(IPv4Address(addr))
+            addr_type = "ipv4"
+        except AddressValueError:
+            addr_type = "fqdn"
+
+    facts.append(
+        actapi.fact("componentOf")
+        .source(addr_type, addr)
+        .destination("uri", uri))
+
+    if port:
+        facts.append(
+            actapi.fact("port", port)
+            .source("uri", uri))
+
+    facts.append(
+        actapi.fact("scheme", scheme)
+        .source("uri", uri))
+
+    if path and not path.strip() == "/":
+        facts.append(
+            actapi.fact("componentOf")
+            .source("path", path)
+            .destination("uri", uri))
+
+        basename = os.path.basename(path)
+
+        if basename.strip():
+            facts.append(
+                actapi.fact("basename", basename)
+                .source("path", path))
+
+    if query:
+        facts.append(
+            actapi.fact("componentOf")
+            .source("query", query)
+            .destination("uri", uri))
+
+    return facts
