@@ -395,17 +395,17 @@ This is not called directly, but are called from add() if Fact is not a meta fac
         """
         started = time.time()
 
-        # Special serializer for source/destination objects
-        self.data["source_object"] = object_serializer(self.source_object)
-        self.data["destination_object"] = object_serializer(
-            self.destination_object)
-
+        # Construct parameters to be sent to backend when creating fact
         params = {
             k: v
             for k, v in self.serialize().items()
             # Exclude inReferenceTo, which is added automatically for retracted facts and meta facts
             if k not in ("inReferenceTo")
         }
+
+        # Special serializer for source/destination objects
+        params["sourceObject"] = object_serializer(self.source_object)
+        params["destinationObject"] = object_serializer(self.destination_object)
 
         fact = self.api_post("v1/fact", **params)["data"]
 
