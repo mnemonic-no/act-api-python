@@ -2,12 +2,11 @@ import functools
 import itertools
 import logging
 import os
-import re
 import sys
 import urllib.parse
-from ipaddress import AddressValueError, IPv4Address
+import ipaddress
 from logging import warning
-from typing import List, Optional
+from typing import List
 
 import act
 
@@ -442,31 +441,29 @@ Return: List of facts
 """
     facts = []
 
-    (scheme, netloc, path, _, query, _) = urllib.parse.urlparse(uri)
+    my_uri = urllib.parse.urlparse(uri)
 
-    # Default - no port an addr == netloc
-    port: Optional[str] = None
-    addr = netloc
+    scheme = my_uri.scheme
+    path = my_uri.path
+    query = my_uri.query
+    addr = my_uri.hostname
+    if my_uri.port:
+        port = str(my_uri.port)
+    else:
+        port = None
 
-    netloc_ipv6 = re.search(r"^\[(?P<addr>[^\]]+)\](:(?P<port>\d+))?$", addr)
-
-    # ipv6
-    if netloc_ipv6:
-        addr_type = "ipv6"
-        addr = netloc_ipv6.group("addr")
-        port = netloc_ipv6.group("port")
-
-    else:  # ipv4 or fqdn
-        # Override addr and port by extracting address and port
-        if ":" in netloc and len(netloc.split(":")) == 2:
-            (addr, port) = netloc.split(":")
-
-        try:
-            # Is address an IPv4Address?
-            addr = str(IPv4Address(addr))
+    try:
+        # Is address an ipv4 or ipv6?
+        ip = ipaddress.ip_address(addr)
+        if ip.version == 4:
             addr_type = "ipv4"
-        except AddressValueError:
-            addr_type = "fqdn"
+        elif ip.version == 6:
+            addr_type = "ipv6"
+        else:
+            raise ipaddress.AddressValueError("Address is neither ipv4 or ipv6:{}".format(addr))
+
+    except ValueError:
+        addr_type = "fqdn"
 
     facts.append(
         actapi.fact("componentOf")
