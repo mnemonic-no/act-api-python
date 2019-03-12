@@ -447,10 +447,8 @@ Return: List of facts
     path = my_uri.path
     query = my_uri.query
     addr = my_uri.hostname
-    if my_uri.port:
-        port = str(my_uri.port)
-    else:
-        port = None
+
+    port = str(my_uri.port) if my_uri.port else None
 
     try:
         # Is address an ipv4 or ipv6?
