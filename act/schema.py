@@ -234,8 +234,8 @@ class Schema(object):
         # If attribute is in schema, update schema
         if attr in self.__dict__.get("data", {}):
             self.__dict__["data"][attr] = value
-        else:  # If not, set attribute on object
-            super(Schema, self).__setattr__(attr, value)
+        else:  # If not, set attribute on object directly
+            self.__dict__[attr] = value
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
