@@ -215,6 +215,9 @@ class Schema(object):
         return self.data[key]
 
     def __getattr__(self, attr):
+        """
+        Get attribute from schema
+        """
         if attr in self.__dict__.get("data", {}):
             return self.__dict__["data"][attr]
 
@@ -222,6 +225,17 @@ class Schema(object):
             # pylint: disable=too-many-format-args
             "{} object has no attribute {}".format(
                 self.__class__, attr))
+
+    def __setattr__(self, attr, value):
+        """
+        Set schema attribute
+        """
+
+        # If attribute is in schema, update schema
+        if attr in self.__dict__.get("data", {}):
+            self.__dict__["data"][attr] = value
+        else:  # If not, set attribute on object directly
+            self.__dict__[attr] = value
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
