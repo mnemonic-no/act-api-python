@@ -1,10 +1,10 @@
 import functools
+import ipaddress
 import itertools
 import logging
 import os
 import sys
 import urllib.parse
-import ipaddress
 from logging import warning
 from typing import List
 
@@ -26,7 +26,7 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact) -> None:
+def handle_fact(fact: Fact, output_format="json") -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
@@ -35,7 +35,12 @@ def handle_fact(fact: Fact) -> None:
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
     else:
-        print(fact)
+        if output_format == "json":
+            print(fact.json())
+        elif output_format == "str":
+            print(fact)
+        else:
+            raise act.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
 
 class Act(ActBase):
@@ -426,12 +431,12 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
 
-def handle_uri(actapi: Act, uri: str) -> None:
+def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
     """
     Add all facts (componentOf, scheme, path, basename) from an URI to the platform
     """
     for fact in uri_facts(actapi, uri):
-        handle_fact(fact)
+        handle_fact(fact, output_format=output_format)
 
 
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
