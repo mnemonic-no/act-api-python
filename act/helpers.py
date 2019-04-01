@@ -1,8 +1,12 @@
 import functools
+import ipaddress
 import itertools
 import logging
+import os
 import sys
+import urllib.parse
 from logging import warning
+from typing import List
 
 import act
 
@@ -22,7 +26,7 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact) -> None:
+def handle_fact(fact: Fact, output_format="json") -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
@@ -31,7 +35,12 @@ def handle_fact(fact: Fact) -> None:
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
     else:
-        print(fact)
+        if output_format == "json":
+            print(fact.json())
+        elif output_format == "str":
+            print(fact)
+        else:
+            raise act.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
 
 class Act(ActBase):
@@ -64,8 +73,7 @@ class Act(ActBase):
             raise ValueError('Invalid log level: %s' % log_level)
 
         datefmt = "%Y-%m-%d %H:%M:%S"
-        formatter = "[%(asctime)s] app=" + log_prefix + \
-            " level=%(levelname)s msg=%(message)s"
+        formatter = "[%(asctime)s] app=" + log_prefix + " level=%(levelname)s msg=%(message)s"
 
         if log_file:
             logging.basicConfig(
@@ -421,3 +429,70 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Add bindings
             fact_type.add_fact_bindings(bindings)
         return fact_type
+
+
+def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
+    """
+    Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+    """
+    for fact in uri_facts(actapi, uri):
+        handle_fact(fact, output_format=output_format)
+
+
+def uri_facts(actapi: Act, uri: str) -> List[Fact]:
+    """Get a list of all facts (componentOf, scheme, path, basename) from an URI
+
+Return: List of facts
+"""
+    facts = []
+
+    my_uri = urllib.parse.urlparse(uri)
+
+    scheme = my_uri.scheme
+    path = my_uri.path
+    query = my_uri.query
+    addr = my_uri.hostname
+    port = my_uri.port
+
+    try:
+        # Is address an ipv4 or ipv6?
+        ip = ipaddress.ip_address(addr)
+        addr_type = "ipv{}".format(ip.version)
+        addr = str(ip)
+    except ValueError:
+        addr_type = "fqdn"
+
+    facts.append(
+        actapi.fact("componentOf")
+        .source(addr_type, addr)
+        .destination("uri", uri))
+
+    if port:
+        facts.append(
+            actapi.fact("port", str(port))
+            .source("uri", uri))
+
+    facts.append(
+        actapi.fact("scheme", scheme)
+        .source("uri", uri))
+
+    if path and not path.strip() == "/":
+        facts.append(
+            actapi.fact("componentOf")
+            .source("path", path)
+            .destination("uri", uri))
+
+        basename = os.path.basename(path)
+
+        if basename.strip():
+            facts.append(
+                actapi.fact("basename", basename)
+                .source("path", path))
+
+    if query:
+        facts.append(
+            actapi.fact("componentOf")
+            .source("query", query)
+            .destination("uri", uri))
+
+    return facts
