@@ -2,7 +2,7 @@ import re
 import responses
 import pytest
 import act
-from act import RE_UUID_MATCH, RE_UUID
+from act.api import RE_UUID_MATCH, RE_UUID
 from act_test import get_mock_data
 
 
@@ -16,7 +16,7 @@ def test_get_object_types():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
     object_types = c.get_object_types()
 
     # We should have a ipv4 object type
@@ -35,7 +35,7 @@ def test_create_object_type():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
     object_type = c.object_type(
         name="threatActor",
         validator=".+").add()
@@ -55,7 +55,7 @@ def test_get_object_by_uuid():
 
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     obj = c.object(id=uuid)
 
@@ -73,7 +73,7 @@ def test_get_object_by_type_value():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     obj = c.object(type="ipv4", value="127.0.0.1")
 
@@ -86,7 +86,7 @@ def test_get_object_by_type_value():
     assert len(facts) >= 1
 
     # All facts should be of type Fact
-    assert all([isinstance(fact, act.fact.Fact) for fact in facts])
+    assert all([isinstance(fact, act.api.fact.Fact) for fact in facts])
 
     # All facts should have an UUID
     assert all([re.search(RE_UUID_MATCH, fact.id) for fact in facts])
@@ -101,7 +101,7 @@ def test_object_search():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     objects = c.object_search(
         fact_type=["seenIn"],
@@ -139,12 +139,12 @@ def test_get_object_search():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     obj = c.object(type="ipv4", value="127.0.0.1")
 
     path = obj.traverse('g.bothE("seenIn").bothV().path().unfold()')
 
     # Should contain both objects and facts
-    assert any([isinstance(elem, act.obj.Object) for elem in path])
-    assert any([isinstance(elem, act.fact.Fact) for elem in path])
+    assert any([isinstance(elem, act.api.obj.Object) for elem in path])
+    assert any([isinstance(elem, act.api.fact.Fact) for elem in path])

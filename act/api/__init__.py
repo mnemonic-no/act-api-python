@@ -14,11 +14,11 @@ RE_UUID = r'(?P<uuid>[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12
 RE_TIMESTAMP_MATCH = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$'
 RE_TIMESTAMP = r'(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)'
 
-from act import utils
-from act import schema
-from act import base
-from act import obj
-from act import fact
-from act import helpers
+from act.api import utils
+from act.api import schema
+from act.api import base
+from act.api import obj
+from act.api import fact
+from act.api import helpers
 
 from .helpers import Act
