@@ -70,9 +70,6 @@ class Object(ActBase):
     def facts(self):
         """Get facts"""
 
-        # This is a circular import so it can not be imported at the top
-        from .fact import Fact
-
         if self.id:
             url = "v1/object/uuid/{}/facts".format(self.id)
         elif self.type.name and self.value:
@@ -83,7 +80,7 @@ class Object(ActBase):
 
         response = self.api_post(url)
 
-        result_set = ActResultSet(response, Fact)
+        result_set = ActResultSet(response, act.api.fact.Fact)
 
         # Add authentication information to all facts
         return result_set("configure", self.config)
