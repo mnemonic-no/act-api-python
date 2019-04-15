@@ -8,8 +8,9 @@ import urllib.parse
 from logging import warning
 from typing import List
 
-import act
+import act.api
 
+from . import DEFAULT_VALIDATOR
 from .base import ActBase, Config
 from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
@@ -40,7 +41,7 @@ def handle_fact(fact: Fact, output_format="json") -> None:
         elif output_format == "str":
             print(fact)
         else:
-            raise act.base.ArgumentError("Illegal output_format: {}".format(output_format))
+            raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
 
 class Act(ActBase):
@@ -129,7 +130,7 @@ All arguments are optional.
 Returns ActResultSet of Facts.
     """
 
-        params = act.utils.prepare_params(
+        params = act.api.utils.prepare_params(
             locals(),
             ensure_list=[
                 "object_type",
@@ -141,7 +142,7 @@ Returns ActResultSet of Facts.
 
         res = self.api_post("v1/fact/search", **params)
 
-        return act.base.ActResultSet(res, self.fact)
+        return act.api.base.ActResultSet(res, self.fact)
 
     # pylint: disable=unused-argument,dangerous-default-value
     def object_search(
@@ -184,7 +185,7 @@ All arguments are optional.
 Returns ActResultSet of Objects.
     """
 
-        params = act.utils.prepare_params(
+        params = act.api.utils.prepare_params(
             locals(),
             ensure_list=[
                 "object_type",
@@ -196,7 +197,7 @@ Returns ActResultSet of Objects.
 
         res = self.api_post("v1/object/search", **params)
 
-        return act.base.ActResultSet(res, self.object)
+        return act.api.base.ActResultSet(res, self.object)
 
     @schema_doc(Fact.SCHEMA)
     def fact(self, *args, **kwargs):
@@ -233,20 +234,20 @@ act object."""
     def get_fact_types(self):
         """Get fact types"""
 
-        return act.base.ActResultSet(
+        return act.api.base.ActResultSet(
             self.api_get("v1/factType"), self.fact_type)
 
     def get_object_types(self):
         """Get object types"""
 
-        return act.base.ActResultSet(
+        return act.api.base.ActResultSet(
             self.api_get("v1/objectType"),
             self.object_type)
 
     def create_fact_type(
             self,
             name,
-            validator=act.DEFAULT_VALIDATOR,
+            validator=DEFAULT_VALIDATOR,
             object_bindings=None):
         """Create fact type with given source, destination and bidirectional objects
 Args:
@@ -255,7 +256,7 @@ Args:
     object_bindings (dict[]):    List of object_dict bindings
 
 Returns created fact type, or exisiting fact type if it already exists.
-""" % act.DEFAULT_VALIDATOR
+""" % DEFAULT_VALIDATOR
 
         if not object_bindings:
             object_bindings = []
@@ -276,7 +277,7 @@ Returns created fact type, or exisiting fact type if it already exists.
                 for object_type in as_list(
                         object_binding.get(object_direction)):
                     if object_type and object_type not in object_types:
-                        raise act.base.ArgumentError(
+                        raise act.api.base.ArgumentError(
                             "Object does not exist: {}".format(object_type))
 
         relevant_object_bindings = []
@@ -297,7 +298,7 @@ Returns created fact type, or exisiting fact type if it already exists.
 
             if not("destinationObjectType" in binding or
                    "sourceObjectType" in binding):
-                raise act.base.ArgumentError(
+                raise act.api.base.ArgumentError(
                     "Must specify either sourceObjectType, destinationObjectType or both in bindings for fact type {}".format(name))
 
             relevant_object_bindings += [
@@ -320,7 +321,7 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
     def create_fact_type_all_bindings(
-            self, name, validator_parameter=act.DEFAULT_VALIDATOR):
+            self, name, validator_parameter=DEFAULT_VALIDATOR):
         """Create a fact type that can be connected to all object types"""
 
         existing_fact_types = {fact_type.name: fact_type
@@ -359,7 +360,7 @@ Returns created fact type, or exisiting fact type if it already exists.
             self,
             name,
             fact_bindings,
-            validator=act.DEFAULT_VALIDATOR):
+            validator=DEFAULT_VALIDATOR):
         """Create meta fact type with given fact bindings
 Args:
     name (str):                  Fact type name
@@ -367,7 +368,7 @@ Args:
     fact_bindings ([]):          List of fact bindings (name)
 
 Returns created fact type, or exisiting fact type if it already exists.
-""" % act.DEFAULT_VALIDATOR
+""" % DEFAULT_VALIDATOR
 
         existing_fact_types = {fact_type.name: fact_type
                                for fact_type in self.get_fact_types()}
@@ -375,7 +376,7 @@ Returns created fact type, or exisiting fact type if it already exists.
         # Verify that all fact types exists
         for fact_type in fact_bindings:
             if fact_type not in existing_fact_types:
-                raise act.base.ArgumentError("Fact type does not exist: {}".format(fact_type))
+                raise act.api.base.ArgumentError("Fact type does not exist: {}".format(fact_type))
 
         # Create list of Fact Bindings
         relevant_fact_bindings = [
@@ -396,14 +397,14 @@ Returns created fact type, or exisiting fact type if it already exists.
 
         return fact_type
 
-    def create_meta_fact_type_all_bindings(self, name, validator_parameter=act.DEFAULT_VALIDATOR):
+    def create_meta_fact_type_all_bindings(self, name, validator_parameter=DEFAULT_VALIDATOR):
         """Create a meta fact type that can be connected to all (non-meta) fact types
 Args:
     name (str):                  Fact type name
     validator (str):             Regular expression valdiator. Default = %s
 
 Returns created fact type, or exisiting fact type if it already exists.
-""" % act.DEFAULT_VALIDATOR
+""" % DEFAULT_VALIDATOR
 
         # Get all existing fact types
         existing_fact_types = {fact_type.name: fact_type

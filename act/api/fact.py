@@ -6,9 +6,10 @@ import re
 import time
 from logging import info, warning
 
-import act
-from act import RE_UUID_MATCH
+import act.api
+from act.api import RE_UUID_MATCH
 
+from . import DEFAULT_VALIDATOR
 from .base import ActBase, Comment, NameSpace, Organization
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
@@ -96,7 +97,7 @@ class FactType(ActBase):
         Field("name"),
         Field("id"),
         Field("validator", default="RegexValidator"),
-        Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
+        Field("validator_parameter", default=DEFAULT_VALIDATOR),
         Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
         Field("relevant_fact_bindings", deserializer=RelevantFactBindings),
         Field("namespace", deserializer=NameSpace),
@@ -474,7 +475,7 @@ Returns meta fact
     def grant_access(self, subject_uuid):
         """Grant access - not implemented yet"""
 
-        raise act.base.NotImplemented(
+        raise act.api.base.NotImplemented(
             "Grant access is not implemented, ignoring {}".format(subject_uuid))
 
     def get_comments(self):
@@ -490,7 +491,7 @@ Returns ActResultSet of Comments.
             raise MissingField("Must have fact ID to get comments")
 
         res = self.api_get("v1/fact/uuid/{}/comments".format(self.id))
-        return act.base.ActResultSet(res, Comment)
+        return act.api.base.ActResultSet(res, Comment)
 
     def add_comment(self, comment, reply_to=None):
         """Add comment
@@ -532,13 +533,13 @@ Args:
                                   (default 25, 0 means all)
     """
 
-        params = act.utils.prepare_params(locals())
+        params = act.api.utils.prepare_params(locals())
 
         if not self.id:
             raise MissingField("Must have fact ID to get comments")
 
         res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
-        return act.base.ActResultSet(res, Fact)
+        return act.api.base.ActResultSet(res, Fact)
 
     def retract(
             self,
@@ -564,7 +565,7 @@ All arguments are optional.
 Returns retracted fact.
     """
 
-        params = act.utils.prepare_params(locals(), ensure_list=["acl"])
+        params = act.api.utils.prepare_params(locals(), ensure_list=["acl"])
 
         if self.id:
             url = "v1/fact/uuid/{}/retract".format(self.id)
