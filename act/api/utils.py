@@ -1,7 +1,7 @@
 import logging
 import sys
 import re
-import act
+import act.api
 
 
 def setup_logging(loglevel="debug", logfile=None, prefix="act"):
@@ -57,6 +57,6 @@ def prepare_params(params, exclude_params=None, ensure_list=None):
 
     # Filter out params with null Values and convert to camelCase
     return {
-        act.utils.snake_to_camel(k): v
+        act.api.utils.snake_to_camel(k): v
         for (k, v) in params.items()
         if (v and k not in exclude_params)}

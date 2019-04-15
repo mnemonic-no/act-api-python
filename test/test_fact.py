@@ -4,9 +4,9 @@ import pytest
 import responses
 
 import act
-from act import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
-from act.fact import Fact
-from act.obj import Object
+from act.api import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
+from act.api.fact import Fact
+from act.api.obj import Object
 from act_test import get_mock_data
 
 # pylint: disable=no-member
@@ -21,7 +21,7 @@ def test_add_fact():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     f = c.fact("seenIn", "report") \
         .source("ipv4", "127.0.0.1") \
@@ -73,7 +73,7 @@ def test_add_meta_fact():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
 
@@ -100,14 +100,14 @@ def test_create_fact_type():
     threat_actor_id = mock_data["relevantObjectBindings"][0][
         "destinationObjectType"]["id"]
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
     fact_type = c.fact_type(
         name="threatActorAlias",
         validator=".+",
         relevant_object_bindings=[
-            act.fact.RelevantObjectBindings(
-                act.obj.Object(id=threat_actor_id),
-                act.obj.Object(id=threat_actor_id),
+            act.api.fact.RelevantObjectBindings(
+                act.api.obj.Object(id=threat_actor_id),
+                act.api.obj.Object(id=threat_actor_id),
                 True)]).add()
 
     assert fact_type.name == "threatActorAlias"
@@ -123,7 +123,7 @@ def test_get_fact_types():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
     fact_types = c.get_fact_types()
 
     assert fact_types.size == len(fact_types)
@@ -138,7 +138,7 @@ def test_fact_search():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     facts = c.fact_search(
         fact_type=["seenIn"],
@@ -162,7 +162,7 @@ def test_fact_acl():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
     acl = c.fact(id=uuid).get_acl()
     assert acl == []
@@ -177,7 +177,7 @@ def test_fact_get_comments():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     # Get comments
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
@@ -185,7 +185,7 @@ def test_fact_get_comments():
     assert comments  # Should be non empty
     assert comments[0].comment == "Test comment"
     assert re.search(RE_TIMESTAMP, comments[0].timestamp)
-    assert all([isinstance(comment, act.base.Comment) for comment in comments])
+    assert all([isinstance(comment, act.api.base.Comment) for comment in comments])
 
 
 @responses.activate
@@ -197,7 +197,7 @@ def test_fact_add_comment():
         json=mock["json"],
         status=mock["status_code"])
 
-    c = act.Act("http://localhost:8080", 1)
+    c = act.api.Act("http://localhost:8080", 1)
 
     # Get comments
     uuid = re.search(RE_UUID, mock["url"]).group("uuid")
@@ -206,7 +206,7 @@ def test_fact_add_comment():
 
 
 def test_fact_chain_incident_organization():
-    c = act.Act("", 1)
+    c = act.api.Act("", 1)
 
     facts = (
         c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
@@ -217,14 +217,14 @@ def test_fact_chain_incident_organization():
     for fact in facts:
         assert any([fact.source_object.value == "*", fact.destination_object.value == "*"])
 
-    seed = act.fact.fact_chain_seed(*facts)
+    seed = act.api.fact.fact_chain_seed(*facts)
 
     assert seed == "(incident/*) -[targets]-> (organization/*)\n" + \
                    "(organization/*) -[memberOf]-> (sector/energy)\n" + \
                    "(uri/http://uri.no) -[observedIn]-> (incident/*)"
 
     # Create fact chain
-    chain = act.fact.fact_chain(*facts)
+    chain = act.api.fact.fact_chain(*facts)
 
     assert len(chain) == 3
 
@@ -235,7 +235,7 @@ def test_fact_chain_incident_organization():
 
 
 def test_fact_chain_ta_incident():
-    c = act.Act("", 1)
+    c = act.api.Act("", 1)
 
     facts = (
         c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
@@ -246,13 +246,13 @@ def test_fact_chain_ta_incident():
     for fact in facts:
         assert any([fact.source_object.value == "*", fact.destination_object.value == "*"])
 
-    incident_seed = act.fact.fact_chain_seed(*facts)
+    incident_seed = act.api.fact.fact_chain_seed(*facts)
 
     assert incident_seed == "(incident/*) -[attributedTo]-> (threatActor/APT99)\n" + \
                             "(uri/http://uri.no) -[observedIn]-> (incident/*)"
 
     # Create fact chain
-    chain = act.fact.fact_chain(*facts)
+    chain = act.api.fact.fact_chain(*facts)
 
     assert len(chain) == 2
 
@@ -263,7 +263,7 @@ def test_fact_chain_ta_incident():
 
 def test_fact_chain_incident_tool():
     """Example with multiple incoming links (which should be grouped)"""
-    c = act.Act("", 1)
+    c = act.api.Act("", 1)
 
     facts = (
         c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "*"),
@@ -273,7 +273,7 @@ def test_fact_chain_incident_tool():
     for fact in facts:
         assert any([fact.source_object.value == "*", fact.destination_object.value == "*"])
 
-    incident_seed = act.fact.fact_chain_seed(*facts)
+    incident_seed = act.api.fact.fact_chain_seed(*facts)
 
     assert incident_seed == "(tool/mimikatz) -[observedIn]-> (incident/*)\n" + \
                             "(uri/http://uri.no) -[observedIn]-> (incident/*)"
@@ -282,7 +282,7 @@ def test_fact_chain_incident_tool():
 
 def test_fact_chain_tool_ta():
     """Example with multiple incoming links (which should be grouped)"""
-    c = act.Act("", 1)
+    c = act.api.Act("", 1)
 
     facts_windshield = (
         c.fact("attributedTo").source("incident", "*").destination("threatActor", "APT32"),
@@ -296,8 +296,8 @@ def test_fact_chain_tool_ta():
         c.fact("classifiedAs").source("content", "*").destination("tool", "mimikatz"),
     )
 
-    windshield_seed = act.fact.fact_chain_seed(*facts_windshield)
-    mimikatz_seed = act.fact.fact_chain_seed(*facts_mimikatz)
+    windshield_seed = act.api.fact.fact_chain_seed(*facts_windshield)
+    mimikatz_seed = act.api.fact.fact_chain_seed(*facts_mimikatz)
 
     assert windshield_seed == "(content/*) -[classifiedAs]-> (tool/windshield)\n" + \
                               "(content/*) -[observedIn/incident]-> (incident/*)\n" + \
@@ -308,7 +308,7 @@ def test_fact_chain_tool_ta():
 
 def test_fact_chain_illegal_tool():
     """Example with multiple incoming links (which should be grouped)"""
-    c = act.Act("", 1)
+    c = act.api.Act("", 1)
 
     facts = (
         c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident"),
@@ -316,5 +316,5 @@ def test_fact_chain_illegal_tool():
     )
 
     # Create fact chain
-    with pytest.raises(act.fact.IllegalFactChain):
-        act.fact.fact_chain(*facts)
+    with pytest.raises(act.api.fact.IllegalFactChain):
+        act.api.fact.fact_chain(*facts)

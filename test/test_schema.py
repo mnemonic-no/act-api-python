@@ -4,8 +4,8 @@ import re
 import pickle
 import random
 import pytest
-from act.schema import Schema, Field
-from act import RE_UUID_MATCH, RE_TIMESTAMP_MATCH
+from act.api.schema import Schema, Field
+from act.api import RE_UUID_MATCH, RE_TIMESTAMP_MATCH
 
 # the Object/Fact and testdata here is a simplified version of the Object/Facts used in ACT
 # The purpose is to only test core functionality of the Schema

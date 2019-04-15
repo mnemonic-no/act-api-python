@@ -5,11 +5,11 @@ import act
 
 def test_add_uri_fqdn() -> None:  # type: ignore
     """ Test for extraction of facts from uri with fqdn """
-    api = act.Act("", None, "error")
+    api = act.api.Act("", None, "error")
 
     uri = "http://www.mnemonic.no/home"
 
-    facts = act.helpers.uri_facts(api, uri)
+    facts = act.api.helpers.uri_facts(api, uri)
 
     assert len(facts) == 4
     assert api.fact("componentOf").source("fqdn", "www.mnemonic.no").destination("uri", uri) \
@@ -21,11 +21,11 @@ def test_add_uri_fqdn() -> None:  # type: ignore
 
 def test_add_uri_ipv4() -> None:  # type: ignore
     """ Test for extraction of facts from uri with ipv4 """
-    api = act.Act("", None, "error")
+    api = act.api.Act("", None, "error")
 
     uri = "http://127.0.0.1:8080/home"
 
-    facts = act.helpers.uri_facts(api, uri)
+    facts = act.api.helpers.uri_facts(api, uri)
 
     assert len(facts) == 5
     assert api.fact("componentOf").source("ipv4", "127.0.0.1").destination("uri", uri) in facts
@@ -37,11 +37,11 @@ def test_add_uri_ipv4() -> None:  # type: ignore
 
 def test_add_uri_ipv6() -> None:  # type: ignore
     """ Test for extraction of facts from uri with ipv4 """
-    api = act.Act("", None, "error")
+    api = act.api.Act("", None, "error")
 
     uri = "http://[2001:67c:21e0::16]"
 
-    facts = act.helpers.uri_facts(api, uri)
+    facts = act.api.helpers.uri_facts(api, uri)
 
     assert len(facts) == 2
     assert api.fact("scheme", "http").source("uri", uri) in facts
@@ -51,11 +51,11 @@ def test_add_uri_ipv6() -> None:  # type: ignore
 
 def test_add_uri_ipv6_with_port_path_query() -> None:  # type: ignore
     """ Test for extraction of facts from uri with ipv6, path and query """
-    api = act.Act("", None, "error")
+    api = act.api.Act("", None, "error")
 
     uri = "http://[2001:67c:21e0::16]:8080/path?q=a"
 
-    facts = act.helpers.uri_facts(api, uri)
+    facts = act.api.helpers.uri_facts(api, uri)
 
     assert len(facts) == 6
     assert api.fact("scheme", "http").source("uri", uri) in facts

@@ -1,8 +1,9 @@
 from logging import info, warning
 
-import act
+import act.api
 
-from .base import ActBase, NameSpace
+from . import DEFAULT_VALIDATOR
+from .base import ActBase, NameSpace, ActResultSet
 from .schema import Field, MissingField, schema_doc
 
 
@@ -11,7 +12,7 @@ class ObjectType(ActBase):
         Field("name"),
         Field("id"),
         Field("validator", default="RegexValidator"),
-        Field("validator_parameter", default=act.DEFAULT_VALIDATOR),
+        Field("validator_parameter", default=DEFAULT_VALIDATOR),
         Field("namespace", deserializer=NameSpace),
     ]
 
@@ -79,7 +80,7 @@ class Object(ActBase):
 
         response = self.api_post(url)
 
-        result_set = act.base.ActResultSet(response, act.fact.Fact)
+        result_set = ActResultSet(response, act.api.fact.Fact)
 
         # Add authentication information to all facts
         return result_set("configure", self.config)
@@ -117,9 +118,9 @@ class Object(ActBase):
         result = []
         for element in self.api_post(url, query=query)["data"]:
             if any(["sourceObject" in element, "destinationObject" in element]):
-                result.append(act.fact.Fact(**element))
+                result.append(act.api.fact.Fact(**element))
             elif "statistics" in element:
-                result.append(act.fact.Object(**element))
+                result.append(act.api.fact.Object(**element))
             else:
                 warning("Unable to guess element type: {}".format(element))
                 result.append(element)
