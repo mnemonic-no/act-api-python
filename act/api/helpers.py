@@ -27,11 +27,13 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact, output_format="json") -> None:
+def handle_fact(fact: Fact, output_format="json") -> Fact:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
     occur within this cache will be ignored.
+
+
     """
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
@@ -42,6 +44,8 @@ def handle_fact(fact: Fact, output_format="json") -> None:
             print(fact)
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
+
+    return fact
 
 
 class Act(ActBase):
@@ -432,12 +436,17 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
 
-def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
+def handle_uri(actapi: Act, uri: str, output_format="json") -> List[Fact]:
     """
     Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+
+    Return all created facts.
     """
-    for fact in uri_facts(actapi, uri):
+
+    return [
         handle_fact(fact, output_format=output_format)
+        for fact
+        in uri_facts(actapi, uri)]
 
 
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
