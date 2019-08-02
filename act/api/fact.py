@@ -299,6 +299,7 @@ class Fact(ActBase):
         Field("value", default=""),
         Field("id", serializer=False),
         # For now, do not serialize/deserialize source
+        Field("flags", serializer=False),
         Field("source", deserializer=False, serializer=False),
         Field("timestamp", serializer=False),
         Field("last_seen_timestamp", serializer=False),
