@@ -248,12 +248,14 @@ act object."""
             self,
             name,
             validator=DEFAULT_VALIDATOR,
-            object_bindings=None):
+            object_bindings=None,
+            default_confidence=1.0):
         """Create fact type with given source, destination and bidirectional objects
 Args:
     name (str):                  Fact type name
     validator (str):             Regular expression valdiator. Default = %s
     object_bindings (dict[]):    List of object_dict bindings
+    default_confidence (float):  Default confidence for fact type
 
 Returns created fact type, or exisiting fact type if it already exists.
 """ % DEFAULT_VALIDATOR
@@ -316,12 +318,13 @@ Returns created fact type, or exisiting fact type if it already exists.
         else:
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator,
-                relevant_object_bindings=relevant_object_bindings).add()
+                relevant_object_bindings=relevant_object_bindings,
+                default_confidence=default_confidence).add()
 
         return fact_type
 
     def create_fact_type_all_bindings(
-            self, name, validator_parameter=DEFAULT_VALIDATOR):
+            self, name, validator_parameter=DEFAULT_VALIDATOR, default_confidence=1.0):
         """Create a fact type that can be connected to all object types"""
 
         existing_fact_types = {fact_type.name: fact_type
@@ -352,7 +355,8 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Create fact with bindings
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator_parameter,
-                relevant_object_bindings=bindings).add()
+                relevant_object_bindings=bindings,
+                default_confidence=default_confidence).add()
 
         return fact_type
 
