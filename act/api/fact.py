@@ -96,6 +96,7 @@ class FactType(ActBase):
     SCHEMA = [
         Field("name"),
         Field("id"),
+        Field("default_confidence"),
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=DEFAULT_VALIDATOR),
         Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
