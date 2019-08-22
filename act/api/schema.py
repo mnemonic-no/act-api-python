@@ -1,6 +1,7 @@
 import copy
 import json
 from .utils import snake_to_camel, camel_to_snake
+from logging import warning
 
 
 def default_serializer(value):
@@ -179,9 +180,8 @@ class Schema(object):
             field = self.get_deserialize_field(k)
 
             if not field:
-                raise ValidationError(
-                    '"{}" not defined in schema on {}'.format(
-                        k, self.__class__))
+                warning('"{}" not defined in schema on {}'.format(k, self.__class__))
+                continue
 
             # deserializer disabled
             if field.deserializer is False:
