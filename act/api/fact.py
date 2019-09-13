@@ -10,7 +10,7 @@ import act.api
 from act.api import RE_UUID_MATCH
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, Comment, NameSpace, Organization, Origin
+from .base import ActBase, Comment, NameSpace, Organization, Origin, origin_lookup_serializer
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
 
@@ -412,6 +412,9 @@ This is not called directly, but are called from add() if Fact is not a meta fac
         # Special serializer for source/destination objects
         params["sourceObject"] = object_serializer(self.source_object)
         params["destinationObject"] = object_serializer(self.destination_object)
+
+        # Special serializer for origin
+        params["origin"] = origin_lookup_serializer(self.origin, config=self.config)
 
         fact = self.api_post("v1/fact", **params)["data"]
 

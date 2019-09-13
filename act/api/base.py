@@ -298,8 +298,43 @@ def origin_map(config):
     # Return dictionary of name -> uuid of origins
     return {
         origin["name"]: origin["id"]
-        for origin in base.api_get("v1/origin", params={"limit": 0})["data"]
+        for origin in base.api_get(
+            "v1/origin",
+            params={"limit": 0, "includeDeleted": False})["data"]
     }
+
+
+def origin_lookup_serializer(origin, config=None):
+    """ Serializer for origins that will lookup by name and verify name/id"""
+
+    if config and config.act_baseurl:  # type: ignore
+        # If we have specified act_baseurl, i.e we are connected to a backend,
+        # serialize origin to uuid (or None)
+
+        if origin.id and not origin.name:
+            # Origin specified by uuid, use this directly
+            return origin.id
+
+        if origin.name and not origin.id:
+            # Lookup uuid by name
+            origin_id = origin_map(config).get(origin.name)
+            if not origin_id:
+                raise OriginDoesNotExist("Unable to find origin with name {}".format(origin.name))
+            return origin_id
+
+        if origin.id and origin.name:
+            if origin_map(config).get(origin.name) == origin.id:
+                return origin.id
+
+            raise OriginMismatch("Origin name and uuid specified, " +
+                                 "but the uuid ({}) does not represent ".format(origin.id) +
+                                 "the origin with this name ({})".format(origin.name))
+        # No origin
+        return None
+
+    # Use default serialization, which will include a dictionary of the origin
+    # object
+    return origin.serialize()
 
 
 class Origin(ActBase):
@@ -308,45 +343,13 @@ class Origin(ActBase):
     SCHEMA = [
         Field("name"),
         Field("id"),
-        Field("namespace", deserializer=NameSpace),
+        Field("namespace", serializer=False, deserializer=NameSpace),
         Field("organization", deserializer=Organization),
         Field("description"),
         Field("trust"),
         Field("type", serializer=False),
         Field("flags", serializer=False),
     ]
-
-    def serialize(self):
-        """ Serializer for origins """
-
-        if self.config.act_baseurl:  # type: ignore
-            # If we have specified act_baseurl, i.e we are connected to a backend,
-            # serialize origin to uuid (or None)
-
-            if self.id and not self.name:
-                # Origin specified by uuid, use this directly
-                return self.id
-
-            elif self.name and not self.id:
-                # Lookup uuid by name
-                origin_id = origin_map(self.config).get(self.name)
-                if not origin_id:
-                    raise OriginDoesNotExist("Unable to find origin with name {}".format(self.name))
-                return origin_id
-            elif self.id and self.name:
-                if origin_map(self.config).get(self.name) == self.id:
-                    return self.id
-                else:
-                    raise OriginMismatch("Origin name and uuid specified, " +
-                                         "but the uuid ({}) does not represent ".format(self.id) +
-                                         "the origin with this name ({})".format(self.name))
-            else:
-                # No origin
-                return None
-
-        # Use default serialization, which will include a dictionary of the origin
-        # object
-        return super(Origin, self).serialize()
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):

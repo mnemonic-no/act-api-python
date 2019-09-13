@@ -364,7 +364,7 @@ create_mock(
     args.act_baseurl,
     args.user_id,
     "GET",
-    "v1/origin?includeDeleted=False&limit=25",
+    "v1/origin?includeDeleted=False&limit=0",
     filename="get_v1_origin_200.json")
 
 # Create origin

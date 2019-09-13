@@ -120,15 +120,6 @@ You can specify origins, when creating facts:
 {'type': 'mentions', 'value': '', 'origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 ```
 
-NOTE: The serialization of origin will depend on whether you are connected a an API (baseurl is specified) or not. If baseurl is specified, origin with names will be mapped to an uuid. If not connected, a dictionary representation of the origin will be used:
-
-```
->>> c = act.api.Act("", user_id = 1, log_level="warn")
->>> f = c.fact("mentions", origin=c.origin(name="Test origin")).source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
->>> f.serialize()
-{'type': 'mentions', 'value': '', 'origin': {'name': 'Test origin'}, 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
-```
-
 ## Get fact
 Use `get()` to get a fact by it's id.
 ```
