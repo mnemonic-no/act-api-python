@@ -11,7 +11,7 @@ from typing import List
 import act.api
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, Config
+from .base import ActBase, Config, Origin
 from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
@@ -243,6 +243,25 @@ act object."""
         return act.api.base.ActResultSet(
             self.api_get("v1/objectType"),
             self.object_type)
+
+    @schema_doc(ObjectType.SCHEMA)
+    def origin(self, *args, **kwargs):
+        """Manage origins. All arguments are passed to create an origin
+object and authentication information is passed from the
+act object."""
+
+        return Origin(*args, **kwargs).configure(self.config)
+
+    def get_origins(self, include_deleted=False, limit=25):
+        """Get origins"""
+
+        params = {
+            "includeDeleted": include_deleted,
+            "limit": limit
+        }
+
+        return act.api.base.ActResultSet(
+            self.api_get("v1/origin", params=params), self.origin)
 
     def create_fact_type(
             self,

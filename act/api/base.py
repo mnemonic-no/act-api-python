@@ -1,14 +1,14 @@
 import json
 import copy
-from logging import error
+import functools
+from logging import error, info, debug
 import requests
-from .schema import Schema, Field, schema_doc
+from .schema import Schema, Field, schema_doc, MissingField
 
 
 class NotImplemented(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
-
 
 class InvalidData(Exception):
     def __init__(self, *args, **kwargs):
@@ -18,8 +18,15 @@ class ArgumentError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-
 class ResponseError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+class OriginMismatch(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+class OriginDoesNotExist(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
@@ -206,6 +213,15 @@ class ActBase(Schema):
 
         return self.api_request("PUT", uri, json=kwargs)
 
+    def api_delete(self, uri, params=None):
+        """Send DELETE request to API
+Args:
+    uri (str):     URI (relative to base url). E.g. "v1/factType"
+    params (Dict): Parameters that are URL enncoded and sent to the API
+"""
+
+        return self.api_request("DELETE", uri, params=params)
+
     def api_get(self, uri, params=None):
         """Send GET request to API
 Args:
@@ -217,7 +233,7 @@ Args:
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
-            return False # Different types -> not equal
+            return False  # Different types -> not equal
 
         for field, value in self.data.items():
             # Only compare serialized fields. The other fields
@@ -230,7 +246,7 @@ Args:
                 # We will check for inconsistencies below
                 continue
             if other.data.get(field) != value:
-                return False # Different field value
+                return False  # Different field value
 
         # Two objects where all fields are equal do not have the same id
         if self.id and other.id and self.id != other.id:
@@ -250,21 +266,131 @@ class NameSpace(ActBase):
 
 
 class Organization(ActBase):
-    """Manage FactSource"""
+    """Manage Organization"""
 
     SCHEMA = [
         Field("name"),
         Field("id"),
     ]
 
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not self.id:
+            return None
 
-class Source(ActBase):
-    """Manage FactSource"""
+        return self.id
+
+
+@functools.lru_cache(maxsize=128)
+def origin_map(config):
+    """ Return lookup dictionary (name: uuid) for all known origins """
+
+    # We put this as a separate function, with only config (baseurl, etc)
+    # as the parameter. In this way, the cache will be used, since
+    # the config will always be the same within the same session
+
+    # Create base object using the specified configuration
+    base = ActBase()
+    base.configure(config)
+
+    debug("Looking up origins")
+
+    # Return dictionary of name -> uuid of origins
+    return {
+        origin["name"]: origin["id"]
+        for origin in base.api_get("v1/origin", params={"limit": 0})["data"]
+    }
+
+
+class Origin(ActBase):
+    """Manage Origin"""
 
     SCHEMA = [
         Field("name"),
         Field("id"),
+        Field("namespace", deserializer=NameSpace),
+        Field("organization", deserializer=Organization),
+        Field("description"),
+        Field("trust"),
+        Field("type", serializer=False),
+        Field("flags", serializer=False),
     ]
+
+    def serialize(self):
+        """ Serializer for origins """
+
+        if self.config.act_baseurl:  # type: ignore
+            # If we have specified act_baseurl, i.e we are connected to a backend,
+            # serialize origin to uuid (or None)
+
+            if self.id and not self.name:
+                # Origin specified by uuid, use this directly
+                return self.id
+
+            elif self.name and not self.id:
+                # Lookup uuid by name
+                origin_id = origin_map(self.config).get(self.name)
+                if not origin_id:
+                    raise OriginDoesNotExist("Unable to find origin with name {}".format(self.name))
+                return origin_id
+            elif self.id and self.name:
+                if origin_map(self.config).get(self.name) == self.id:
+                    return self.id
+                else:
+                    raise OriginMismatch("Origin name and uuid specified, " +
+                                         "but the uuid ({}) does not represent ".format(self.id) +
+                                         "the origin with this name ({})".format(self.name))
+            else:
+                # No origin
+                return None
+
+        # Use default serialization, which will include a dictionary of the origin
+        # object
+        return super(Origin, self).serialize()
+
+    @schema_doc(SCHEMA)
+    def __init__(self, *args, **kwargs):
+        super(Origin, self).__init__(*args, **kwargs)
+
+    def get(self):
+        """Get Origin"""
+
+        if not self.id:
+            raise MissingField(
+                "Must have fact ID to get origin")
+
+        origin = self.api_get("v1/origin/uuid/{}".format(self.id))["data"]
+        self.data = {}
+        self.deserialize(**origin)
+        return self
+
+    def add(self):
+        """Add Origin"""
+        params = self.serialize()
+
+        origin = self.api_post("v1/origin", **params)["data"]
+
+        # Empty data and load new result from response
+        self.data = {}
+        self.deserialize(**origin)
+
+        info("Created origin: {}".format(self.name))
+
+        return self
+
+    def delete(self):
+        """Delete Origin"""
+
+        if not self.id:
+            raise MissingField(
+                "Must have fact ID to delete origin")
+
+        origin = self.api_delete("v1/origin/uuid/{}".format(self.id))["data"]
+        self.data = {}
+        self.deserialize(**origin)
+
+        info("Deleted origin: {}".format(self.name))
+        return self
 
 
 class Comment(ActBase):
@@ -275,5 +401,5 @@ class Comment(ActBase):
         Field("id"),
         Field("timestamp", serializer=False),
         Field("reply_to"),
-        Field("source", deserializer=Source, serializer=False),
+        Field("origin", deserializer=Origin, serializer=False),
     ]

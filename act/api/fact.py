@@ -10,7 +10,7 @@ import act.api
 from act.api import RE_UUID_MATCH
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, Comment, NameSpace, Organization
+from .base import ActBase, Comment, NameSpace, Organization, Origin
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
 
@@ -299,13 +299,16 @@ class Fact(ActBase):
               serializer=lambda fact_type: fact_type.name),
         Field("value", default=""),
         Field("id", serializer=False),
-        # For now, do not serialize/deserialize source
         Field("flags", serializer=False),
-        Field("source", deserializer=False, serializer=False),
+        Field("origin", deserializer=Origin),
+        Field("added_by", deserializer=Origin, serializer=False),
+        Field("trust", serializer=False),
+        Field("confidence"),
+        Field("certainty", serializer=False),
         Field("timestamp", serializer=False),
         Field("last_seen_timestamp", serializer=False),
         Field("in_reference_to", deserializer=ReferencedFact),
-        Field("organization", deserializer=Organization, serializer=False),
+        Field("organization", deserializer=Organization),
         Field("access_mode", default="Public"),
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),

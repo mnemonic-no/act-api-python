@@ -7,6 +7,9 @@ import act
 from act.api import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
 from act.api.fact import Fact
 from act.api.obj import Object
+
+# Organization is required by eval of repr(fact)
+from act.api.base import Organization
 from act_test import get_mock_data
 
 # pylint: disable=no-member

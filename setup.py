@@ -10,7 +10,7 @@ with open(path.join(this_directory, 'README.md'), "rb") as f:
 
 setup(
     name="act-api",
-    version="0.6.3",
+    version="0.6.4",
     author="mnemonic AS",
     author_email="opensource@mnemonic.no",
     description="Python library to connect to the ACT rest API",
