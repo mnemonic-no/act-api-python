@@ -233,7 +233,7 @@ Args:
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
-            return False  # Different types -> not equal
+            return False # Different types -> not equal
 
         for field, value in self.data.items():
             # Only compare serialized fields. The other fields
@@ -246,7 +246,7 @@ Args:
                 # We will check for inconsistencies below
                 continue
             if other.data.get(field) != value:
-                return False  # Different field value
+                return False # Different field value
 
         # Two objects where all fields are equal do not have the same id
         if self.id and other.id and self.id != other.id:
