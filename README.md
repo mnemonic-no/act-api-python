@@ -372,7 +372,7 @@ The platforms supports `origin` to support where the fact originates from. If no
 You can list origins using `get_origins()`:
 
 ```
->>> c.get_origions()
+>>> c.get_origins()
 [Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001', namespace=NameSpace(name='Global', id='00000000-0000-0000-0000-000000000000'), organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), trust=0.8)]
 ```
 
