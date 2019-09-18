@@ -30,6 +30,10 @@ class OriginDoesNotExist(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+class NotConnected(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
 
 def request(method, user_id, url, requests_common_kwargs = None, **kwargs):
     """Perform requests towards API
@@ -288,6 +292,9 @@ def origin_map(config):
     # We put this as a separate function, with only config (baseurl, etc)
     # as the parameter. In this way, the cache will be used, since
     # the config will always be the same within the same session
+
+    if not config.act_baseurl:
+        raise NotConnected("act_baseurl is not configured, unable to fetch origins")
 
     # Create base object using the specified configuration
     base = ActBase()
