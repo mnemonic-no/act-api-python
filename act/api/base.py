@@ -318,6 +318,9 @@ def origin_lookup_serializer(origin, config=None):
         # If we have specified act_baseurl, i.e we are connected to a backend,
         # serialize origin to uuid (or None)
 
+        if not origin:
+            return None
+
         if origin.id and not origin.name:
             # Origin specified by uuid, use this directly
             return origin.id
