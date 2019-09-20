@@ -44,7 +44,7 @@ Connct to the API using an URL where the API is exposed and a user ID:
 
 ```
 >>> import act
->>> c = act.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning")
+>>> c = act.api.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning")
 ```
 
 The returned object exposes most of the API in the ACT platform:
@@ -55,12 +55,13 @@ The returned object exposes most of the API in the ACT platform:
 * get_fact_types - Get fact types
 * object - Manage objects
 * object_search - Searh objects
+* origin - Manage origins
 * get_object_types - Get object types
 
-Additional arguments to act.Act can be passed on to [requests](http://docs.python-requests.org) using the requests_common_kwargs, which mans you can add for instance `auth` if the instance is behind a reverse proxy with HTTP authentication:
+Additional arguments to act.api.Act can be passed on to [requests](http://docs.python-requests.org) using the requests_common_kwargs, which mans you can add for instance `auth` if the instance is behind a reverse proxy with HTTP authentication:
 
 ```
->>> c = act.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning", requests_common_kwargs = {"auth": ("act", "<PASSWORD>")})
+>>> c = act.api.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning", requests_common_kwargs = {"auth": ("act", "<PASSWORD>")})
 ```
 
 ## Create fact
@@ -105,6 +106,18 @@ A string representation of the fact will show a human readable version of the fa
 ```
 >>> str(f)
 '(ipv4/127.0.0.1) -[seenIn/report]-> (report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7)'
+```
+
+### Specifying origins when creating facts
+
+You can specify origins, when creating facts:
+
+```
+>>> act.api.base.origin_map(c.config)
+{'John Doe': '00000000-0000-0000-0000-000000000001', 'Test origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe'}
+>>> f = c.fact("mentions", origin=c.origin(name="Test origin")).source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
+>>> f.serialize()
+{'type': 'mentions', 'value': '', 'origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 ```
 
 ## Get fact
@@ -348,6 +361,35 @@ Facts are immutable, so it is not possible to update the ObjectType and FactType
 >>> dropped_by.id
 '18b0f70e-82dc-4904-b745-d20b0ac54adf'
 >>>> dropped_by.add_binding(source_object_type=filename, destination_object_type=hash)
+```
+
+## Origins
+
+The platforms supports `origin` to support where the fact originates from. If now origin is given when creating a fact, the origin will be the user itself.
+
+### List origin
+
+You can list origins using `get_origins()`:
+
+```
+>>> c.get_origins()
+[Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001', namespace=NameSpace(name='Global', id='00000000-0000-0000-0000-000000000000'), organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), trust=0.8)]
+```
+
+### Add origin
+
+```
+>>> o = c.origin("Test origin", trust=0.5, description="My test origin")
+>>> o.add()
+Origin(name='Test origin', id='5da8b157-5129-4f2f-9b90-6d624d62eebe', namespace=NameSpace(name='Global', id='00000000-0000-0000-0000-000000000000'), organization=Organization(), description='My test origin', trust=0.5)
+```
+
+### Get origin
+
+```
+>>> o = c.origin(id="5da8b157-5129-4f2f-9b90-6d624d62eebe")
+>>> o.get()
+Origin(name='Test origin', id='5da8b157-5129-4f2f-9b90-6d624d62eebe', namespace=NameSpace(name='Global', id='00000000-0000-0000-0000-000000000000'), organization=Organization(), description='My test origin', trust=0.5)
 ```
 
 ## Fact Chains
