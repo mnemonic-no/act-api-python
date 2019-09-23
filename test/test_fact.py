@@ -68,6 +68,28 @@ def test_add_fact():
 
 
 @responses.activate
+def test_add_fact_validation_error():
+    """ Test adding fact that fails on validation """
+    mock = get_mock_data("data/post_v1_fact_127.0.0.x_412.json")
+    responses.add(
+        responses.POST,
+        mock["url"],
+        json=mock["json"],
+        status=mock["status_code"])
+
+    c = act.api.Act("http://localhost:8888", 1)
+
+    f = c.fact("mentions", "report") \
+        .source("report", "xyz") \
+        .destination("ipv4", "127.0.0.x")
+
+    # Add fact -> should fail on ipv4 validation
+    with pytest.raises(act.api.base.ValidationError):
+        f.add()
+
+
+
+@responses.activate
 def test_add_meta_fact():
     mock = get_mock_data("data/post_v1_fact_uuid_meta_201.json")
     responses.add(

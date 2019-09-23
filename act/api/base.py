@@ -22,6 +22,10 @@ class ResponseError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+class ValidationError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
 class OriginMismatch(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -68,6 +72,16 @@ Args:
     )
 
     if res.status_code == 412:
+        error_messages = res.json()["messages"]
+
+        # Example output on object validation error:
+        # {"responseCode": 412, "limit": 0, "count": 0, "messages": [{"type": "FieldError", "message": "Object did not pass validation against ObjectType.", "messageTemplate": "object.not.valid", "field": "objectValue", "parameter": "127.0.0.x", "timestamp": "2019-09-23T18:19:26.476Z"}], "data": null, "size": 0}
+
+        # Raise ValidationError for 412/Object validation errors
+        if "Object did not pass validation against ObjectType." in \
+                [msg["message"] for msg in error_messages]:
+            raise ValidationError(res.text)
+
         error("Request failed: {}, {}, {}".format(
             url, kwargs, res.status_code))
         raise ResponseError(res.text)
