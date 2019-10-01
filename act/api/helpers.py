@@ -478,6 +478,9 @@ Return: List of facts
     addr = my_uri.hostname
     port = my_uri.port
 
+    if not (scheme and addr):
+        raise act.api.base.ValidationError("URI requires both scheme and address part")
+
     try:
         # Is address an ipv4 or ipv6?
         ip = ipaddress.ip_address(addr)
