@@ -1,6 +1,7 @@
 """ Test for act helpers """
 
-import act
+import pytest
+import act.api
 
 
 def test_add_uri_fqdn() -> None:  # type: ignore
@@ -17,6 +18,20 @@ def test_add_uri_fqdn() -> None:  # type: ignore
     assert api.fact("componentOf").source("path", "/home").destination("uri", uri) in facts
     assert api.fact("scheme", "http").source("uri", uri) in facts
     assert api.fact("basename", "home").source("path", "/home") in facts
+
+
+def test_uri_should_fail() -> None:  # type: ignore
+    """ Test for extraction of facts from uri with ipv4 """
+    api = act.api.Act("", None, "error")
+
+    with pytest.raises(act.api.base.ValidationError):
+        act.api.helpers.uri_facts(api, "http://")
+
+    with pytest.raises(act.api.base.ValidationError):
+        act.api.helpers.uri_facts(api, "www.mnemonic.no")
+
+    with pytest.raises(act.api.base.ValidationError):
+        act.api.helpers.uri_facts(api, "127.0.0.1")
 
 
 def test_add_uri_ipv4() -> None:  # type: ignore
