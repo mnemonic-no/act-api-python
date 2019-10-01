@@ -211,6 +211,20 @@ create_mock(
         "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"},
     filename="post_v1_fact_127.0.0.2_201.json")
 
+# create fact that fails on validator
+create_mock(
+    args.act_baseurl,
+    args.user_id,
+    "POST",
+    "v1/fact",
+    json={
+        "type": "mentions",
+        "value": "report",
+        "accessMode": "Public",
+        "destinationObject": "ipv4/127.0.0.x",
+        "sourceObject": "report/xyz"},
+    filename="post_v1_fact_127.0.0.x_412.json")
+
 # Give time for fact to be created so it is searchable
 time.sleep(2)
 
