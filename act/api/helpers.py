@@ -456,8 +456,11 @@ Returns created fact type, or exisiting fact type if it already exists.
 
 
 def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
-    """
-    Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+    """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+
+Raises act.api.base.ValidationError if uri does not have scheme and address component.
+Make sure to catch this exception and not create other facts to an uri that fails this
+validation as it will most likely fail later when uploading the fact to the platform.
     """
     for fact in uri_facts(actapi, uri):
         handle_fact(fact, output_format=output_format)
@@ -465,6 +468,10 @@ def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
 
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
     """Get a list of all facts (componentOf, scheme, path, basename) from an URI
+
+Raises act.api.base.ValidationError if uri does not have scheme and address component.
+Make sure to catch this exception and not create other facts to an uri that fails this
+validation as it will most likely fail later when uploading the fact to the platform.
 
 Return: List of facts
 """
