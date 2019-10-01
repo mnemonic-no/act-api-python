@@ -39,6 +39,14 @@ class NotConnected(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+ERROR_HANDLER = {
+        # Mapping of message templates provided in 412 errors from backend to
+        # Exceptions that will be raised
+        "object.not.valid": lambda msg: ValidationError(
+            "{message} ({field}={parameter})".format(**msg))
+}
+
+
 def request(method, user_id, url, requests_common_kwargs = None, **kwargs):
     """Perform requests towards API
 
@@ -78,10 +86,12 @@ Args:
         # {"responseCode": 412, "limit": 0, "count": 0, "messages": [{"type": "FieldError", "message": "Object did not pass validation against ObjectType.", "messageTemplate": "object.not.valid", "field": "objectValue", "parameter": "127.0.0.x", "timestamp": "2019-09-23T18:19:26.476Z"}], "data": null, "size": 0}
 
         # Raise ValidationError for 412/Object validation errors
-        if "Object did not pass validation against ObjectType." in \
-                [msg["message"] for msg in error_messages]:
-            raise ValidationError(res.text)
+        for msg in error_messages:
+            msg_template = msg.get("messageTemplate")
+            if ERROR_HANDLER.get(msg_template):
+                raise ERROR_HANDLER[msg_template](msg)
 
+        # All other, unhandled errors - log to error() and raise generic exception
         error("Request failed: {}, {}, {}".format(
             url, kwargs, res.status_code))
         raise ResponseError(res.text)

@@ -87,6 +87,12 @@ def test_add_fact_validation_error():
     with pytest.raises(act.api.base.ValidationError):
         f.add()
 
+    try:
+        f.add()
+    except act.api.base.ValidationError as err:
+        assert(str(err) == "Object did not pass validation against ObjectType. " +
+                           "(objectValue=127.0.0.x)")
+
 
 
 @responses.activate
