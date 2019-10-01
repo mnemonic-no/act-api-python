@@ -88,7 +88,7 @@ Args:
         # Raise ValidationError for 412/Object validation errors
         for msg in error_messages:
             msg_template = msg.get("messageTemplate")
-            if ERROR_HANDLER.get(msg_template):
+            if msg_template in ERROR_HANDLER:
                 raise ERROR_HANDLER[msg_template](msg)
 
         # All other, unhandled errors - log to error() and raise generic exception
