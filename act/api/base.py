@@ -1,14 +1,14 @@
 import json
 import copy
-from logging import error
+import functools
+from logging import error, info, debug
 import requests
-from .schema import Schema, Field, schema_doc
+from .schema import Schema, Field, schema_doc, MissingField
 
 
 class NotImplemented(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
-
 
 class InvalidData(Exception):
     def __init__(self, *args, **kwargs):
@@ -18,10 +18,33 @@ class ArgumentError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-
 class ResponseError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
+
+class ValidationError(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+class OriginMismatch(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+class OriginDoesNotExist(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+class NotConnected(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
+ERROR_HANDLER = {
+        # Mapping of message templates provided in 412 errors from backend to
+        # Exceptions that will be raised
+        "object.not.valid": lambda msg: ValidationError(
+            "{message} ({field}={parameter})".format(**msg))
+}
 
 
 def request(method, user_id, url, requests_common_kwargs = None, **kwargs):
@@ -57,6 +80,18 @@ Args:
     )
 
     if res.status_code == 412:
+        error_messages = res.json()["messages"]
+
+        # Example output on object validation error:
+        # {"responseCode": 412, "limit": 0, "count": 0, "messages": [{"type": "FieldError", "message": "Object did not pass validation against ObjectType.", "messageTemplate": "object.not.valid", "field": "objectValue", "parameter": "127.0.0.x", "timestamp": "2019-09-23T18:19:26.476Z"}], "data": null, "size": 0}
+
+        # Raise ValidationError for 412/Object validation errors
+        for msg in error_messages:
+            msg_template = msg.get("messageTemplate")
+            if msg_template in ERROR_HANDLER:
+                raise ERROR_HANDLER[msg_template](msg)
+
+        # All other, unhandled errors - log to error() and raise generic exception
         error("Request failed: {}, {}, {}".format(
             url, kwargs, res.status_code))
         raise ResponseError(res.text)
@@ -206,6 +241,15 @@ class ActBase(Schema):
 
         return self.api_request("PUT", uri, json=kwargs)
 
+    def api_delete(self, uri, params=None):
+        """Send DELETE request to API
+Args:
+    uri (str):     URI (relative to base url). E.g. "v1/factType"
+    params (Dict): Parameters that are URL enncoded and sent to the API
+"""
+
+        return self.api_request("DELETE", uri, params=params)
+
     def api_get(self, uri, params=None):
         """Send GET request to API
 Args:
@@ -250,21 +294,140 @@ class NameSpace(ActBase):
 
 
 class Organization(ActBase):
-    """Manage FactSource"""
+    """Manage Organization"""
 
     SCHEMA = [
         Field("name"),
         Field("id"),
     ]
 
+    def serialize(self):
+        # Return None for empty objects (non initialized objects)
+        if not self.id:
+            return None
 
-class Source(ActBase):
-    """Manage FactSource"""
+        return self.id
+
+
+@functools.lru_cache(maxsize=128)
+def origin_map(config):
+    """ Return lookup dictionary (name: uuid) for all known origins """
+
+    # We put this as a separate function, with only config (baseurl, etc)
+    # as the parameter. In this way, the cache will be used, since
+    # the config will always be the same within the same session
+
+    if not config.act_baseurl:
+        raise NotConnected("act_baseurl is not configured, unable to fetch origins")
+
+    # Create base object using the specified configuration
+    base = ActBase()
+    base.configure(config)
+
+    debug("Looking up origins")
+
+    # Return dictionary of name -> uuid of origins
+    return {
+        origin["name"]: origin["id"]
+        for origin in base.api_get(
+            "v1/origin",
+            params={"limit": 0, "includeDeleted": False})["data"]
+    }
+
+
+def origin_lookup_serializer(origin, config=None):
+    """ Serializer for origins that will lookup by name and verify name/id"""
+
+    if config and config.act_baseurl:  # type: ignore
+        # If we have specified act_baseurl, i.e we are connected to a backend,
+        # serialize origin to uuid (or None)
+
+        if not origin:
+            return None
+
+        if origin.id and not origin.name:
+            # Origin specified by uuid, use this directly
+            return origin.id
+
+        if origin.name and not origin.id:
+            # Lookup uuid by name
+            origin_id = origin_map(config).get(origin.name)
+            if not origin_id:
+                raise OriginDoesNotExist("Unable to find origin with name {}".format(origin.name))
+            return origin_id
+
+        if origin.id and origin.name:
+            if origin_map(config).get(origin.name) == origin.id:
+                return origin.id
+
+            raise OriginMismatch("Origin name and uuid specified, " +
+                                 "but the uuid ({}) does not represent ".format(origin.id) +
+                                 "the origin with this name ({})".format(origin.name))
+        # No origin
+        return None
+
+    # Use default serialization, which will include a dictionary of the origin
+    # object
+    return origin.serialize()
+
+
+class Origin(ActBase):
+    """Manage Origin"""
 
     SCHEMA = [
         Field("name"),
         Field("id"),
+        Field("namespace", serializer=False, deserializer=NameSpace),
+        Field("organization", deserializer=Organization),
+        Field("description"),
+        Field("trust"),
+        Field("type", serializer=False),
+        Field("flags", serializer=False),
     ]
+
+    @schema_doc(SCHEMA)
+    def __init__(self, *args, **kwargs):
+        super(Origin, self).__init__(*args, **kwargs)
+
+    def get(self):
+        """Get Origin"""
+
+        if not self.id:
+            raise MissingField(
+                "Must have fact ID to get origin")
+
+        origin = self.api_get("v1/origin/uuid/{}".format(self.id))["data"]
+        self.data = {}
+        self.deserialize(**origin)
+        return self
+
+    def add(self):
+        """Add Origin"""
+        params = self.serialize()
+
+        origin = self.api_post("v1/origin", **params)["data"]
+
+        # Empty data and load new result from response
+        self.data = {}
+        self.deserialize(**origin)
+
+        info("Created origin: {}".format(self.name))
+
+        return self
+
+    def delete(self):
+        """Delete Origin"""
+
+        if not self.id:
+            raise MissingField(
+                "Must have fact ID to delete origin")
+
+        origin = self.api_delete("v1/origin/uuid/{}".format(self.id))["data"]
+        self.data = {}
+        self.deserialize(**origin)
+
+        info("Deleted origin: {}".format(self.name))
+        return self
 
 
 class Comment(ActBase):
@@ -275,5 +438,5 @@ class Comment(ActBase):
         Field("id"),
         Field("timestamp", serializer=False),
         Field("reply_to"),
-        Field("source", deserializer=Source, serializer=False),
+        Field("origin", deserializer=Origin, serializer=False),
     ]

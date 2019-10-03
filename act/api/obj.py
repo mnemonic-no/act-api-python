@@ -3,7 +3,7 @@ from logging import info, warning
 import act.api
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, NameSpace, ActResultSet
+from .base import ActBase, NameSpace, ActResultSet, Organization
 from .schema import Field, MissingField, schema_doc
 
 

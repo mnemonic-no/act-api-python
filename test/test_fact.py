@@ -7,6 +7,9 @@ import act
 from act.api import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
 from act.api.fact import Fact
 from act.api.obj import Object
+
+# Organization is required by eval of repr(fact)
+from act.api.base import Organization
 from act_test import get_mock_data
 
 # pylint: disable=no-member
@@ -62,6 +65,34 @@ def test_add_fact():
     assert re.search(RE_UUID_MATCH, f.organization.id)
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
+
+
+@responses.activate
+def test_add_fact_validation_error():
+    """ Test adding fact that fails on validation """
+    mock = get_mock_data("data/post_v1_fact_127.0.0.x_412.json")
+    responses.add(
+        responses.POST,
+        mock["url"],
+        json=mock["json"],
+        status=mock["status_code"])
+
+    c = act.api.Act("http://localhost:8888", 1)
+
+    f = c.fact("mentions", "report") \
+        .source("report", "xyz") \
+        .destination("ipv4", "127.0.0.x")
+
+    # Add fact -> should fail on ipv4 validation
+    with pytest.raises(act.api.base.ValidationError):
+        f.add()
+
+    try:
+        f.add()
+    except act.api.base.ValidationError as err:
+        assert(str(err) == "Object did not pass validation against ObjectType. " +
+                           "(objectValue=127.0.0.x)")
+
 
 
 @responses.activate

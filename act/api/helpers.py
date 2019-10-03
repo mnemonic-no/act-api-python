@@ -11,7 +11,7 @@ from typing import List
 import act.api
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, Config
+from .base import ActBase, Config, Origin
 from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
@@ -244,16 +244,37 @@ act object."""
             self.api_get("v1/objectType"),
             self.object_type)
 
+    @schema_doc(ObjectType.SCHEMA)
+    def origin(self, *args, **kwargs):
+        """Manage origins. All arguments are passed to create an origin
+object and authentication information is passed from the
+act object."""
+
+        return Origin(*args, **kwargs).configure(self.config)
+
+    def get_origins(self, include_deleted=False, limit=25):
+        """Get origins"""
+
+        params = {
+            "includeDeleted": include_deleted,
+            "limit": limit
+        }
+
+        return act.api.base.ActResultSet(
+            self.api_get("v1/origin", params=params), self.origin)
+
     def create_fact_type(
             self,
             name,
             validator=DEFAULT_VALIDATOR,
-            object_bindings=None):
+            object_bindings=None,
+            default_confidence=1.0):
         """Create fact type with given source, destination and bidirectional objects
 Args:
     name (str):                  Fact type name
     validator (str):             Regular expression valdiator. Default = %s
     object_bindings (dict[]):    List of object_dict bindings
+    default_confidence (float):  Default confidence for fact type
 
 Returns created fact type, or exisiting fact type if it already exists.
 """ % DEFAULT_VALIDATOR
@@ -316,12 +337,13 @@ Returns created fact type, or exisiting fact type if it already exists.
         else:
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator,
-                relevant_object_bindings=relevant_object_bindings).add()
+                relevant_object_bindings=relevant_object_bindings,
+                default_confidence=default_confidence).add()
 
         return fact_type
 
     def create_fact_type_all_bindings(
-            self, name, validator_parameter=DEFAULT_VALIDATOR):
+            self, name, validator_parameter=DEFAULT_VALIDATOR, default_confidence=1.0):
         """Create a fact type that can be connected to all object types"""
 
         existing_fact_types = {fact_type.name: fact_type
@@ -352,7 +374,8 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Create fact with bindings
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator_parameter,
-                relevant_object_bindings=bindings).add()
+                relevant_object_bindings=bindings,
+                default_confidence=default_confidence).add()
 
         return fact_type
 
@@ -433,8 +456,11 @@ Returns created fact type, or exisiting fact type if it already exists.
 
 
 def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
-    """
-    Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+    """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+
+Raises act.api.base.ValidationError if uri does not have scheme and address component.
+Make sure to catch this exception and not create other facts to an uri that fails this
+validation as it will most likely fail later when uploading the fact to the platform.
     """
     for fact in uri_facts(actapi, uri):
         handle_fact(fact, output_format=output_format)
@@ -442,6 +468,10 @@ def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
 
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
     """Get a list of all facts (componentOf, scheme, path, basename) from an URI
+
+Raises act.api.base.ValidationError if uri does not have scheme and address component.
+Make sure to catch this exception and not create other facts to an uri that fails this
+validation as it will most likely fail later when uploading the fact to the platform.
 
 Return: List of facts
 """
@@ -454,6 +484,9 @@ Return: List of facts
     query = my_uri.query
     addr = my_uri.hostname
     port = my_uri.port
+
+    if not (scheme and addr):
+        raise act.api.base.ValidationError("URI requires both scheme and address part")
 
     try:
         # Is address an ipv4 or ipv6?
