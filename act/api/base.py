@@ -2,8 +2,10 @@ import json
 import copy
 import functools
 from logging import error, info, debug
+import re
 import requests
 from .schema import Schema, Field, schema_doc, MissingField
+from . import RE_UUID_MATCH
 
 
 class NotImplemented(Exception):
@@ -192,12 +194,27 @@ class Config(object):
             self,
             act_baseurl,
             user_id,
-            requests_common_kwargs = None):
-        """Set URL and USER ID, and optionally other arguments that will be passed on to request"""
+            requests_common_kwargs = None,
+            origin_name=None,
+            origin_id=None):
+        """
+        act_baseurl - url to ACT instance
+        use_id - ACT user ID
+        requests_common_kwargs - options that will be passed to requests when connecting to ACT api
+        origin_name - ACT origin name that will be added to all facts where origin is not set
+        origin_id - ACT origin id that will be added to all facts where origin is not set
+
+        Only one of origin_name of origin_id must be specified.
+        """
+
+        if origin_id and not re.search(RE_UUID_MATCH, origin_id):
+            raise ArgumentError("origin_id id not a valaid UUID: {}".format(origin_id))
 
         self.act_baseurl = act_baseurl
         self.user_id = user_id
         self.requests_common_kwargs = requests_common_kwargs
+        self.origin_name = origin_name
+        self.origin_id = origin_id
 
 
 class ActBase(Schema):

@@ -56,10 +56,12 @@ class Act(ActBase):
             log_level="debug",
             log_file=None,
             log_prefix="act",
-            requests_common_kwargs=None):
+            requests_common_kwargs=None,
+            origin_name=None,
+            origin_id=None):
         super(Act, self).__init__()
 
-        self.configure(Config(act_baseurl, user_id, requests_common_kwargs))
+        self.configure(Config(act_baseurl, user_id, requests_common_kwargs, origin_name, origin_id))
 
         self.setup_logging(log_level, log_file, log_prefix)
 
@@ -205,7 +207,16 @@ Returns ActResultSet of Objects.
 object and authentication information is passed from the
 act object."""
 
-        return Fact(*args, **kwargs).configure(self.config)
+        f = Fact(*args, **kwargs).configure(self.config)
+
+        if not f.origin:
+            # If origin is not specified explicit on the fact, use origin from default config
+            if f.config.origin_id:
+                f.origin = Origin(id=self.config.origin_id)
+            elif self.config.origin_name:
+                f.origin = Origin(name=self.config.origin_name)
+
+        return f
 
     @schema_doc(Object.SCHEMA)
     def object(self, *args, **kwargs):
