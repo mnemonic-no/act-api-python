@@ -27,7 +27,7 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact, output_filehandle: TextIO = None, output_format="json") -> None:
+def handle_fact(fact: Fact, output_format="json", output_filehandle: TextIO = None) -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
