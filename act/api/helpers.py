@@ -6,7 +6,7 @@ import os
 import sys
 import urllib.parse
 from logging import warning
-from typing import List
+from typing import List, TextIO
 
 import act.api
 
@@ -27,19 +27,28 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact, output_format="json") -> None:
+def handle_fact(fact: Fact, output_filehandle: TextIO = None, output_format="json") -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
     occur within this cache will be ignored.
+
+    will use print function if no file handle has been passed, otherwise
+    it will write to the file handle
     """
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
     else:
         if output_format == "json":
-            print(fact.json())
+            if output_filehandle:
+                output_filehandle.write('{}\n'.format(fact.json()))
+            else:
+                print(fact.json())
         elif output_format == "str":
-            print(fact)
+            if output_filehandle:
+                output_filehandle.write('{}\n'.format(str(fact)))
+            else:
+                print(fact)
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
