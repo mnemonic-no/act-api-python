@@ -27,28 +27,22 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact, output_format="json", output_filehandle: TextIO = None) -> None:
+def handle_fact(fact: Fact, output_format="json", output_filehandle: TextIO = sys.stdout) -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
     occur within this cache will be ignored.
 
-    will use print function if no file handle has been passed, otherwise
-    it will write to the file handle
+    will use print to stdout if no file handle has been passed, otherwise
+    it will write to the file handle specified
     """
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
     else:
         if output_format == "json":
-            if output_filehandle:
-                output_filehandle.write('{}\n'.format(fact.json()))
-            else:
-                print(fact.json())
+            output_filehandle.write('{}\n'.format(fact.json()))
         elif output_format == "str":
-            if output_filehandle:
-                output_filehandle.write('{}\n'.format(str(fact)))
-            else:
-                print(fact)
+            output_filehandle.write('{}\n'.format(str(fact)))
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
