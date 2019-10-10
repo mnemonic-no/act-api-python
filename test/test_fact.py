@@ -9,7 +9,7 @@ from act.api.fact import Fact
 from act.api.obj import Object
 
 # Organization is required by eval of repr(fact)
-from act.api.base import Organization
+from act.api.base import Organization, Origin
 from act_test import get_mock_data
 
 # pylint: disable=no-member
@@ -65,6 +65,62 @@ def test_add_fact():
     assert re.search(RE_UUID_MATCH, f.organization.id)
     # Not implemented/stable in backend API yet
     # self.assertRegex(f.origin.id, RE_UUID_MATCH)
+
+
+def test_add_fact_origin():
+    """ Tests for origin specified in config and directly on fact """
+
+    default_origin_name = "test-origin"
+    default_origin_id = "00000000-0000-0000-0000-000000000001"
+
+    with pytest.raises(act.api.base.ArgumentError):
+        act.api.Act("", 1, origin_id="not-valid-uuid")
+
+    # ACT client with origin name in config
+    c_origin_name = act.api.Act("", 1, origin_name=default_origin_name)
+
+    # ACT client with origin id in config
+    c_origin_id = act.api.Act("", 1, origin_id=default_origin_id)
+
+    # ACT client with not origin in config
+    c_no_origin = act.api.Act("", 1)
+
+    # Fact using origin name from config
+    fact_origin_name_from_config = c_origin_name.fact("seenIn", "report") \
+        .source("ipv4", "127.0.0.1") \
+        .destination("report", "xyz")
+
+    # Using origin name specified in fact
+    fact_explicit_origin_name = c_no_origin.fact(
+        "seenIn", "report", origin=Origin(name=default_origin_name)) \
+        .source("ipv4", "127.0.0.1") \
+        .destination("report", "xyz")
+
+    # Fact using origin id from config
+    fact_origin_id_from_config = c_origin_id.fact("seenIn", "report") \
+        .source("ipv4", "127.0.0.1") \
+        .destination("report", "xyz")
+
+    # Using origin id specified in fact
+    fact_explicit_origin_id = c_no_origin.fact(
+        "seenIn", "report", origin=Origin(id=default_origin_id)) \
+        .source("ipv4", "127.0.0.1") \
+        .destination("report", "xyz")
+
+    # No origin in config or in fact definition
+    fact_no_origin = c_no_origin.fact("seenIn", "report") \
+        .source("ipv4", "127.0.0.1") \
+        .destination("report", "xyz")
+
+    # Facts with origin name from config and explicitly defined
+    # should have the same origin
+    assert fact_origin_name_from_config.origin == fact_explicit_origin_name.origin
+
+    # Facts with origin id from config and explicitly defined
+    # should have the same origin
+    assert fact_origin_id_from_config.origin == fact_explicit_origin_id.origin
+
+    assert fact_no_origin.origin is None
 
 
 @responses.activate
