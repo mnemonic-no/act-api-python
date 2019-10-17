@@ -301,6 +301,7 @@ class Fact(ActBase):
         Field("id", serializer=False),
         Field("flags", serializer=False),
         Field("origin", deserializer=Origin),
+        Field("comment"),
         Field("added_by", deserializer=Origin, serializer=False),
         Field("trust", serializer=False),
         Field("confidence"),
