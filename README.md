@@ -28,8 +28,8 @@ Facts can be linked on or more objects. Below, the mentions fact is linked to bo
 
 |Object type|Object value|Fact type|Fact value|Object type|Object value|
 | ----------|------------|---------|----------|-----------|------------|
-|report     |cbc80bb5(..)|mentions |ipv4      |ipv4       |127.0.0.1   |
-|report     |cbc80bb5c0c0f8944bf73(...)|hasTitle|Threat Intel Summary|*n/a*|*n/a*|
+|report     |cbc80bb(...)|mentions |*n/a*          |ipv4       |127.0.0.1   |
+|report     |cbc80bb(...)|name     |Threat Intel Summary|*n/a*|*n/a*|
 
 # Design principles of the Python API.
 
@@ -69,24 +69,18 @@ Additional arguments to act.api.Act can be passed on to [requests](http://docs.p
 Create a fact by calling `fact()`. The result can be chained using one or more `source()`, `destination()` or `bidirectionial()` to add linked objects.
 
 ```
->>> f = c.fact("mentions", "ipv4").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
+>>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f
-Fact(type='mentions', value='ipv4', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
+Fact(type='mentions', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
 
 ```
 >>> f.serialize()
-{'type': 'mentions',
- 'value': 'ipv4',
- 'accessMode': 'Public',
- 'sourceObject': {'type': 'report',
-  'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'},
- 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'},
- 'bidirectionalBinding': False}
+{'type': 'mentions', 'value': '', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 >>> f.json()
-'{"type": "mentions", "value": "ipv4", "accessMode": "Public", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
+'{"type": "mentions", "value": "", "accessMode": "Public", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
 ```
 
 Since the fact is not yet added it does not have an id.
@@ -99,7 +93,7 @@ None
 Use `add()` to add the fact to the platform.
 ```
 >>> f.add()
-Fact(type='mentions', value='ipv4', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3254b82c-9da7-4f96-88be-9c7c6fa04742'), destination_object=Object(type='ipv4', value='127.0.0.1', id='21fedc88-6c81-401a-87d3-bb601a77a861'))
+Fact(type='mentions', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3254b82c-9da7-4f96-88be-9c7c6fa04742'), destination_object=Object(type='ipv4', value='127.0.0.1', id='21fedc88-6c81-401a-87d3-bb601a77a861'))
 ```
 
 The fact will be replaced with the fact added to the platform and it will now have an id.
@@ -127,6 +121,7 @@ You can specify origins, when creating facts:
 ```
 
 You can use `origin_name` or `origin_id` when connecting to the API to apply an origin to all facts:
+```
 >>> c = act.api.Act("", user_id = 1, log_level="warn", origin_name="Test-origin")
 >>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f.origin
@@ -136,15 +131,16 @@ Origin(name='Test-origin')
 ## Get fact
 Use `get()` to get a fact by it's id.
 ```
->>> f = c.fact(id='5e533787-e71d-4ba4-9208-531f9baf8437').get()
+>>> f = c.fact(id='4dc14f42-f175-4695-8ddb-d372b3138ec8').get()
 ```
 
 Properties on objects can be retrieved by dot notation.
 ```
 >>> f.type.name
-'mentions'
+'name'
 >>> f.value
-'ipv4'
+'Threat Intel Summary'
+''
 ```
 
 ## Add Meta facts
@@ -155,13 +151,13 @@ Use `meta()` to create meta facts (facts about facts).
 >>> import time
 >>> meta = f.meta("observationTime", int(time.time()))
 >>> meta
-Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='mentions', value='ipv4', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='mentions', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
 ```
 As with facts, the meta fact is not sent to the backend, and you must use `add()` to submit it to the platform.
 
 ```
 >>> meta.add()
-Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='mentions', value='ipv4', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='mentions', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
 ```
 
 ## Get Meta facts
@@ -263,7 +259,7 @@ False
 
 Use the limit parameter to get more items.
 ```
->>> facts = c.fact_search(fact_type="mentions", fact_value="ipv4", object_value="127.0.0.1", limit=2000)
+>>> facts = c.fact_search(fact_type="mentions", object_value="127.0.0.1", limit=2000)
 >>> facts.size
 119
 >>> facts.complete
