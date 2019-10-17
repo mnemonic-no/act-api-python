@@ -24,11 +24,11 @@ Objects are universal elements that can be referenced uniquely by its value. An 
 Facts are assertions or obsersvations that ties objects together. A fact may or may not have a value desribing further the fact.
 
 
-Facts can be linked on or more objects. Below, the seenIn fact is linked to both an ipv4 object and report object, but the hasTitle fact is only linked to a report.
+Facts can be linked on or more objects. Below, the mentions fact is linked to both an ipv4 object and report object, but the hasTitle fact is only linked to a report.
 
 |Object type|Object value|Fact type|Fact value|Object type|Object value|
 | ----------|------------|---------|----------|-----------|------------|
-|ipv4       |127.0.0.1   |seenIn   |report    |report     |cbc80bb5c0c0f8944bf73(...)|
+|report     |cbc80bb5(..)|mentions |ipv4      |ipv4       |127.0.0.1   |
 |report     |cbc80bb5c0c0f8944bf73(...)|hasTitle|Threat Intel Summary|*n/a*|*n/a*|
 
 # Design principles of the Python API.
@@ -69,18 +69,24 @@ Additional arguments to act.api.Act can be passed on to [requests](http://docs.p
 Create a fact by calling `fact()`. The result can be chained using one or more `source()`, `destination()` or `bidirectionial()` to add linked objects.
 
 ```
->>> f = c.fact("seenIn", "report").source("ipv4", "127.0.0.1").destination("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7")
+>>> f = c.fact("mentions", "ipv4").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f
-Fact(type='seenIn', value='report', source_object=Object(type='ipv4', value='127.0.0.1'), destination_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'))
+Fact(type='mentions', value='ipv4', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
 
 ```
 >>> f.serialize()
-{'type': 'seenIn', 'destinationObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'accessMode': 'Public', 'value': 'report', 'sourceObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
+{'type': 'mentions',
+ 'value': 'ipv4',
+ 'accessMode': 'Public',
+ 'sourceObject': {'type': 'report',
+  'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'},
+ 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'},
+ 'bidirectionalBinding': False}
 >>> f.json()
-'{"type": "seenIn", "destinationObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "accessMode": "Public", "value": "report", "sourceObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'<Paste>
+'{"type": "mentions", "value": "ipv4", "accessMode": "Public", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
 ```
 
 Since the fact is not yet added it does not have an id.
@@ -93,7 +99,7 @@ None
 Use `add()` to add the fact to the platform.
 ```
 >>> f.add()
-Fact(type='seenIn', value='report', source_object=Object(type='ipv4', value='127.0.0.1', id='85803795-2026-4526-97bb-6221563bf05e'), destination_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='9a94c8ad-7b85-41e4-bed5-13362c6a41ac'))
+Fact(type='mentions', value='ipv4', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3254b82c-9da7-4f96-88be-9c7c6fa04742'), destination_object=Object(type='ipv4', value='127.0.0.1', id='21fedc88-6c81-401a-87d3-bb601a77a861'))
 ```
 
 The fact will be replaced with the fact added to the platform and it will now have an id.
@@ -105,7 +111,7 @@ The fact will be replaced with the fact added to the platform and it will now ha
 A string representation of the fact will show a human readable version of the fact.
 ```
 >>> str(f)
-'(ipv4/127.0.0.1) -[seenIn/report]-> (report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7)'
+'(report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7) -[mentions/ipv4]-> (ipv4/127.0.0.1)'
 ```
 
 ### Specifying origins when creating facts
@@ -136,9 +142,9 @@ Use `get()` to get a fact by it's id.
 Properties on objects can be retrieved by dot notation.
 ```
 >>> f.type.name
-'seenIn'
+'mentions'
 >>> f.value
-'report'
+'ipv4'
 ```
 
 ## Add Meta facts
@@ -149,13 +155,13 @@ Use `meta()` to create meta facts (facts about facts).
 >>> import time
 >>> meta = f.meta("observationTime", int(time.time()))
 >>> meta
-Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='seenIn', value='report', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='mentions', value='ipv4', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
 ```
 As with facts, the meta fact is not sent to the backend, and you must use `add()` to submit it to the platform.
 
 ```
 >>> meta.add()
-Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='seenIn', value='report', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='mentions', value='ipv4', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
 ```
 
 ## Get Meta facts
@@ -192,7 +198,7 @@ Use `retract()` to retract a fact.. The fact *must* have an id, either by specyf
 >>> objects[0].statistics[0].count
 131
 >>> objects[0].statistics[1].type.name
-'seenIn'
+'mentions'
 >>> objects[0].statistics[1].count
 114
 ```
@@ -240,7 +246,7 @@ fact_search(keywords='', object_type=[], fact_type=[], object_value=[], fact_val
 
 By default the search will return and ActResultSet with 25 itmes.
 ```
->>> facts = c.fact_search(fact_type="seenIn", fact_value="report")
+>>> facts = c.fact_search(fact_type="mentions", fact_value="ipv4")
 >>> len(facts)
 25
 >>> facts.size
@@ -257,7 +263,7 @@ False
 
 Use the limit parameter to get more items.
 ```
->>> facts = c.fact_search(fact_type="seenIn", fact_value="report", object_value="127.0.0.1", limit=2000)
+>>> facts = c.fact_search(fact_type="mentions", fact_value="ipv4", object_value="127.0.0.1", limit=2000)
 >>> facts.size
 119
 >>> facts.complete
@@ -286,7 +292,7 @@ The act platform has support for graph queries using the Gremlin Query language.
 Use the `traverse()` function from an object to perform a graph query.
 
 ```
->>> path = c.object("ipv4", "127.0.0.220").traverse('g.bothE("seenIn").bothV().path().unfold()')
+>>> path = c.object("ipv4", "127.0.0.220").traverse('g.bothE("mentions").bothV().path().unfold()')
 >>> type(path[0])
 <class 'act.obj.Object'>
 >>> type(path[1])
