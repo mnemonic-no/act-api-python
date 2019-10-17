@@ -121,6 +121,7 @@ You can specify origins, when creating facts:
 ```
 
 You can use `origin_name` or `origin_id` when connecting to the API to apply an origin to all facts:
+```
 >>> c = act.api.Act("", user_id = 1, log_level="warn", origin_name="Test-origin")
 >>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f.origin
