@@ -131,14 +131,15 @@ Origin(name='Test-origin')
 ## Get fact
 Use `get()` to get a fact by it's id.
 ```
->>> f = c.fact(id='5e533787-e71d-4ba4-9208-531f9baf8437').get()
+>>> f = c.fact(id='4dc14f42-f175-4695-8ddb-d372b3138ec8').get()
 ```
 
 Properties on objects can be retrieved by dot notation.
 ```
 >>> f.type.name
-'mentions'
+'name'
 >>> f.value
+'Threat Intel Summary'
 ''
 ```
 
