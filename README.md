@@ -43,7 +43,7 @@ Facts can be linked on or more objects. Below, the mentions fact is linked to bo
 Connct to the API using an URL where the API is exposed and a user ID:
 
 ```
->>> import act
+>>> import act.api
 >>> c = act.api.Act("https://act-eu1.mnemonic.no", user_id = 1, log_level = "warning")
 ```
 
