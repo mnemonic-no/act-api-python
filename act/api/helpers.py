@@ -119,7 +119,7 @@ Args:
     fact_value (str[] | str):     Only return Facts matching a specific value
     organization (str[] | str):   Only return Facts belonging to
                                   a specific Organization
-    source (str[] | str):         Only return Facts coming from a specific Source
+    origin (str[] | str):         Only return Facts coming from a specific Origin
     include_retracted (bool):     Include retracted Facts (default=False)
     before (timestamp):           Only return Facts added before a specific
                                   timestamp. Timestamp is on this format:
@@ -143,7 +143,7 @@ Returns ActResultSet of Facts.
                 "fact_type",
                 "fact_value",
                 "organization",
-                "source"])
+                "origin"])
 
         res = self.api_post("v1/fact/search", **params)
 
