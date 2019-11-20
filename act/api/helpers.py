@@ -6,12 +6,12 @@ import os
 import sys
 import urllib.parse
 from logging import warning
-from typing import List
+from typing import List, TextIO
 
 import act.api
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, Config
+from .base import ActBase, Config, Origin
 from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
@@ -27,19 +27,22 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact, output_format="json") -> None:
+def handle_fact(fact: Fact, output_format="json", output_filehandle: TextIO = sys.stdout) -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
     occur within this cache will be ignored.
+
+    will use print to stdout if no file handle has been passed, otherwise
+    it will write to the file handle specified
     """
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
     else:
         if output_format == "json":
-            print(fact.json())
+            output_filehandle.write('{}\n'.format(fact.json()))
         elif output_format == "str":
-            print(fact)
+            output_filehandle.write('{}\n'.format(str(fact)))
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
@@ -56,10 +59,12 @@ class Act(ActBase):
             log_level="debug",
             log_file=None,
             log_prefix="act",
-            requests_common_kwargs=None):
+            requests_common_kwargs=None,
+            origin_name=None,
+            origin_id=None):
         super(Act, self).__init__()
 
-        self.configure(Config(act_baseurl, user_id, requests_common_kwargs))
+        self.configure(Config(act_baseurl, user_id, requests_common_kwargs, origin_name, origin_id))
 
         self.setup_logging(log_level, log_file, log_prefix)
 
@@ -114,7 +119,7 @@ Args:
     fact_value (str[] | str):     Only return Facts matching a specific value
     organization (str[] | str):   Only return Facts belonging to
                                   a specific Organization
-    source (str[] | str):         Only return Facts coming from a specific Source
+    origin (str[] | str):         Only return Facts coming from a specific Origin
     include_retracted (bool):     Include retracted Facts (default=False)
     before (timestamp):           Only return Facts added before a specific
                                   timestamp. Timestamp is on this format:
@@ -138,7 +143,7 @@ Returns ActResultSet of Facts.
                 "fact_type",
                 "fact_value",
                 "organization",
-                "source"])
+                "origin"])
 
         res = self.api_post("v1/fact/search", **params)
 
@@ -205,7 +210,16 @@ Returns ActResultSet of Objects.
 object and authentication information is passed from the
 act object."""
 
-        return Fact(*args, **kwargs).configure(self.config)
+        f = Fact(*args, **kwargs).configure(self.config)
+
+        if not f.origin:
+            # If origin is not specified explicit on the fact, use origin from default config
+            if f.config.origin_id:
+                f.origin = Origin(id=self.config.origin_id)
+            elif self.config.origin_name:
+                f.origin = Origin(name=self.config.origin_name)
+
+        return f
 
     @schema_doc(Object.SCHEMA)
     def object(self, *args, **kwargs):
@@ -244,16 +258,37 @@ act object."""
             self.api_get("v1/objectType"),
             self.object_type)
 
+    @schema_doc(ObjectType.SCHEMA)
+    def origin(self, *args, **kwargs):
+        """Manage origins. All arguments are passed to create an origin
+object and authentication information is passed from the
+act object."""
+
+        return Origin(*args, **kwargs).configure(self.config)
+
+    def get_origins(self, include_deleted=False, limit=25):
+        """Get origins"""
+
+        params = {
+            "includeDeleted": include_deleted,
+            "limit": limit
+        }
+
+        return act.api.base.ActResultSet(
+            self.api_get("v1/origin", params=params), self.origin)
+
     def create_fact_type(
             self,
             name,
             validator=DEFAULT_VALIDATOR,
-            object_bindings=None):
+            object_bindings=None,
+            default_confidence=1.0):
         """Create fact type with given source, destination and bidirectional objects
 Args:
     name (str):                  Fact type name
     validator (str):             Regular expression valdiator. Default = %s
     object_bindings (dict[]):    List of object_dict bindings
+    default_confidence (float):  Default confidence for fact type
 
 Returns created fact type, or exisiting fact type if it already exists.
 """ % DEFAULT_VALIDATOR
@@ -316,12 +351,13 @@ Returns created fact type, or exisiting fact type if it already exists.
         else:
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator,
-                relevant_object_bindings=relevant_object_bindings).add()
+                relevant_object_bindings=relevant_object_bindings,
+                default_confidence=default_confidence).add()
 
         return fact_type
 
     def create_fact_type_all_bindings(
-            self, name, validator_parameter=DEFAULT_VALIDATOR):
+            self, name, validator_parameter=DEFAULT_VALIDATOR, default_confidence=1.0):
         """Create a fact type that can be connected to all object types"""
 
         existing_fact_types = {fact_type.name: fact_type
@@ -352,7 +388,8 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Create fact with bindings
             fact_type = self.fact_type(
                 name=name, validator_parameter=validator_parameter,
-                relevant_object_bindings=bindings).add()
+                relevant_object_bindings=bindings,
+                default_confidence=default_confidence).add()
 
         return fact_type
 
@@ -432,16 +469,23 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
 
-def handle_uri(actapi: Act, uri: str, output_format="json") -> None:
-    """
-    Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+def handle_uri(actapi: Act, uri: str, output_format="json", output_filehandle: TextIO = sys.stdout) -> None:
+    """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
+
+Raises act.api.base.ValidationError if uri does not have scheme and address component.
+Make sure to catch this exception and not create other facts to an uri that fails this
+validation as it will most likely fail later when uploading the fact to the platform.
     """
     for fact in uri_facts(actapi, uri):
-        handle_fact(fact, output_format=output_format)
+        handle_fact(fact, output_format=output_format, output_filehandle=output_filehandle)
 
 
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
     """Get a list of all facts (componentOf, scheme, path, basename) from an URI
+
+Raises act.api.base.ValidationError if uri does not have scheme and address component.
+Make sure to catch this exception and not create other facts to an uri that fails this
+validation as it will most likely fail later when uploading the fact to the platform.
 
 Return: List of facts
 """
@@ -454,6 +498,9 @@ Return: List of facts
     query = my_uri.query
     addr = my_uri.hostname
     port = my_uri.port
+
+    if not (scheme and addr):
+        raise act.api.base.ValidationError("URI requires both scheme and address part")
 
     try:
         # Is address an ipv4 or ipv6?
