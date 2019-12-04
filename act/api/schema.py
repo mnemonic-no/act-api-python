@@ -1,11 +1,18 @@
 import copy
 import json
 from .utils import snake_to_camel, camel_to_snake
-from logging import warning
-
+from logging import info, warning
 
 def default_serializer(value):
-    """Default serializer. return value without modification"""
+    """Default serializer. return trimmed value"""
+
+    if isinstance(value, str):
+        trimmed = value.strip()
+
+        if trimmed != value:
+            info('Trimmed value: "{}"'.format(value))
+            return trimmed
+
     return value
 
 
