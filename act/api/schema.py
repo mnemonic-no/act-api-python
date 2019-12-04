@@ -3,7 +3,7 @@ import json
 from .utils import snake_to_camel, camel_to_snake
 from logging import info, warning
 
-def default_serializer(value):
+def default_deserializer(value):
     """Default serializer. return trimmed value"""
 
     if isinstance(value, str):
@@ -35,7 +35,7 @@ class Field(object):
             name,
             default=None,
             serializer=None,
-            deserializer=default_serializer,
+            deserializer=default_deserializer,
             serialize_target=None,
             deserialize_target=None,
             flatten=False):
@@ -68,7 +68,7 @@ Args:
 
         if isinstance(value, dict):
             # pylint: disable=comparison-with-callable
-            if self.deserializer == default_serializer:
+            if self.deserializer == default_deserializer:
                 raise ValidationError(
                     "dict is not suppored by default serializer. field={}, value={}".format(
                         self.name, value))
