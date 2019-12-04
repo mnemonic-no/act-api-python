@@ -70,7 +70,7 @@ Args:
             # pylint: disable=comparison-with-callable
             if self.deserializer == default_deserializer:
                 raise ValidationError(
-                    "dict is not suppored by default serializer. field={}, value={}".format(
+                    "dict is not supported by default serializer. field={}, value={}".format(
                         self.name, value))
 
             return self.deserializer(**value)
