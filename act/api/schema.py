@@ -10,8 +10,7 @@ def default_deserializer(value):
         trimmed = value.strip()
 
         if trimmed != value:
-            info('Trimmed value: "{}"'.format(value))
-            return trimmed
+            warning('Value will be trimmed in future versions: "{}"'.format(value))
 
     return value
 
