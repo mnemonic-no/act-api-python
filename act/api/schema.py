@@ -1,11 +1,17 @@
 import copy
 import json
 from .utils import snake_to_camel, camel_to_snake
-from logging import warning
+from logging import info, warning
 
+def default_deserializer(value):
+    """Default serializer. return trimmed value"""
 
-def default_serializer(value):
-    """Default serializer. return value without modification"""
+    if isinstance(value, str):
+        trimmed = value.strip()
+
+        if trimmed != value:
+            warning('Value will be trimmed in future versions: "{}"'.format(value))
+
     return value
 
 
@@ -28,7 +34,7 @@ class Field(object):
             name,
             default=None,
             serializer=None,
-            deserializer=default_serializer,
+            deserializer=default_deserializer,
             serialize_target=None,
             deserialize_target=None,
             flatten=False):
@@ -61,9 +67,9 @@ Args:
 
         if isinstance(value, dict):
             # pylint: disable=comparison-with-callable
-            if self.deserializer == default_serializer:
+            if self.deserializer == default_deserializer:
                 raise ValidationError(
-                    "dict is not suppored by default serializer. field={}, value={}".format(
+                    "dict is not supported by default serializer. field={}, value={}".format(
                         self.name, value))
 
             return self.deserializer(**value)
