@@ -8,6 +8,7 @@ FACT_IS_SOURCE = "FactIsSource"
 FACT_IS_DESTINATION = "FactIsDestination"
 BIDIRECTIONAL_FACT = "BiDirectional"
 DEFAULT_VALIDATOR = r'(.|\n)*'
+ACT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 RE_UUID_MATCH = r'^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$'
 RE_UUID = r'(?P<uuid>[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12})'
