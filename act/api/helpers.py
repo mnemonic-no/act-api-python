@@ -6,7 +6,7 @@ import os
 import sys
 import urllib.parse
 from logging import warning
-from typing import List, TextIO
+from typing import List, TextIO, Optional
 
 import act.api
 
@@ -27,7 +27,7 @@ def as_list(value):
 
 
 @functools.lru_cache(4096)
-def handle_fact(fact: Fact, output_format="json", output_filehandle: TextIO = sys.stdout) -> None:
+def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[TextIO] = None) -> None:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
@@ -36,6 +36,14 @@ def handle_fact(fact: Fact, output_format="json", output_filehandle: TextIO = sy
     will use print to stdout if no file handle has been passed, otherwise
     it will write to the file handle specified
     """
+
+    # We do not set sys.stdout as default in the function signature
+    # because that breaks redirection in pytest
+    # https://github.com/pytest-dev/pytest/issues/2178
+
+    if not output_filehandle:
+        output_filehandle = sys.stdout
+
     if fact.config.act_baseurl:  # type: ignore
         fact.add()
     else:
