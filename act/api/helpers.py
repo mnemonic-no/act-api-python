@@ -477,13 +477,21 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
 
-def handle_uri(actapi: Act, uri: str, output_format="json", output_filehandle: TextIO = sys.stdout) -> None:
+def handle_uri(actapi: Act, uri: str, output_format="json", output_filehandle: Optional[TextIO] = None) -> None:
     """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
 
 Raises act.api.base.ValidationError if uri does not have scheme and address component.
 Make sure to catch this exception and not create other facts to an uri that fails this
 validation as it will most likely fail later when uploading the fact to the platform.
     """
+
+    # We do not set sys.stdout as default in the function signature
+    # because that breaks redirection in pytest
+    # https://github.com/pytest-dev/pytest/issues/2178
+
+    if not output_filehandle:
+        output_filehandle = sys.stdout
+
     for fact in uri_facts(actapi, uri):
         handle_fact(fact, output_format=output_format, output_filehandle=output_filehandle)
 
