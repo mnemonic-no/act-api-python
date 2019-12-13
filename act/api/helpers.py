@@ -39,6 +39,8 @@ def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[Te
 
     # We do not set sys.stdout as default in the function signature
     # because that breaks redirection in pytest
+    # https://github.com/pytest-dev/pytest/issues/2178
+
     if not output_filehandle:
         output_filehandle = sys.stdout
 
