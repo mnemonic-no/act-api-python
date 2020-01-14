@@ -91,6 +91,8 @@ def test_ip_obj() -> None:
     assert act.api.helpers.ip_obj("::1") == ("ipv6", "0000:0000:0000:0000:0000:0000:0000:0001")
     assert act.api.helpers.ip_obj("127.0.0.1") == ("ipv4", "127.0.0.1")
 
+    assert act.api.helpers.ip_obj("127.000.00.01") == ("ipv4", "127.0.0.1")
+
     with pytest.raises(ValueError):
         assert act.api.helpers.ip_obj("x.y.z") == ("ipv4", "x.y.x")
 
