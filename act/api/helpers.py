@@ -571,6 +571,10 @@ Raises ValueError if addr is not valid IPv4 or IPv6 address
     try:
         # Is address an ipv4 or ipv6?
         ip = ipaddress.ip_address(addr.strip())
+
+        if ip.version not in (4, 6):
+            raise ValueError('Unknown IP version: %s' % ip.version)
+
         return ("ipv{}".format(ip.version), ip.exploded)
     except ValueError:
         raise ValueError('Invalid IP address: %s' % addr)
