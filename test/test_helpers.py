@@ -97,4 +97,9 @@ def test_ip_obj() -> None:
     with pytest.raises(ValueError):
         assert act.api.helpers.ip_obj("300.300.300.300") == ("ipv4", "x.y.x")
 
-    assert api.fact("ipv4", "127.0.0.1") == api.fact(*act.api.helpers.ip_obj("127.0.0.1"))
+    assert api.fact("resolvesTo") \
+            .source("fqdn", "localhost") \
+            .destination("ipv4", "127.0.0.1") \
+        == api.fact("resolvesTo") \
+            .source("fqdn", "localhost") \
+            .destination(*act.api.helpers.ip_obj("127.0.0.1"))
