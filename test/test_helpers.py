@@ -60,7 +60,7 @@ def test_add_uri_ipv6() -> None:  # type: ignore
 
     assert len(facts) == 2
     assert api.fact("scheme", "http").source("uri", uri) in facts
-    assert api.fact("componentOf").source("ipv6", "2001:67c:21e0::16").destination("uri", uri) \
+    assert api.fact("componentOf").source("ipv6", "2001:067c:21e0:0000:0000:0000:0000:0016").destination("uri", uri) \
         in facts
 
 
@@ -74,9 +74,34 @@ def test_add_uri_ipv6_with_port_path_query() -> None:  # type: ignore
 
     assert len(facts) == 6
     assert api.fact("scheme", "http").source("uri", uri) in facts
-    assert api.fact("componentOf").source("ipv6", "2001:67c:21e0::16").destination("uri", uri) \
+    assert api.fact("componentOf").source("ipv6", "2001:067c:21e0:0000:0000:0000:0000:0016").destination("uri", uri) \
         in facts
     assert api.fact("port", "8080").source("uri", uri) in facts
     assert api.fact("componentOf").source("path", "/path").destination("uri", uri) in facts
     assert api.fact("basename", "path").source("path", "/path") in facts
     assert api.fact("componentOf").source("query", "q=a").destination("uri", uri) in facts
+
+
+def test_ip_obj() -> None:
+    """ Test ip handling """
+
+    api = act.api.Act("", None, "error")
+
+    assert act.api.helpers.ip_obj("2001:67c:21e0::16") == ("ipv6", "2001:067c:21e0:0000:0000:0000:0000:0016")
+    assert act.api.helpers.ip_obj("::1") == ("ipv6", "0000:0000:0000:0000:0000:0000:0000:0001")
+    assert act.api.helpers.ip_obj("127.0.0.1") == ("ipv4", "127.0.0.1")
+
+    assert act.api.helpers.ip_obj("127.000.00.01") == ("ipv4", "127.0.0.1")
+
+    with pytest.raises(ValueError):
+        assert act.api.helpers.ip_obj("x.y.z") == ("ipv4", "x.y.x")
+
+    with pytest.raises(ValueError):
+        assert act.api.helpers.ip_obj("300.300.300.300") == ("ipv4", "x.y.x")
+
+    assert api.fact("resolvesTo") \
+            .source("fqdn", "localhost") \
+            .destination("ipv4", "127.0.0.1") \
+        == api.fact("resolvesTo") \
+            .source("fqdn", "localhost") \
+            .destination(*act.api.helpers.ip_obj("127.0.0.1"))

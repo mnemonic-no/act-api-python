@@ -6,7 +6,7 @@ import os
 import sys
 import urllib.parse
 from logging import warning
-from typing import List, TextIO, Optional
+from typing import List, TextIO, Optional, Text, Tuple
 
 import act.api
 
@@ -522,7 +522,7 @@ Return: List of facts
         # Is address an ipv4 or ipv6?
         ip = ipaddress.ip_address(addr)
         addr_type = "ipv{}".format(ip.version)
-        addr = str(ip)
+        addr = ip.exploded
     except ValueError:
         addr_type = "fqdn"
 
@@ -560,3 +560,17 @@ Return: List of facts
             .destination("uri", uri))
 
     return facts
+
+
+def ip_obj(addr: Text) -> Tuple[Text, Text]:
+    """Return tuple of IP type and (expanded) IP address.
+
+Raises ValueError if addr is not valid IPv4 or IPv6 address
+"""
+
+    try:
+        # Is address an ipv4 or ipv6?
+        ip = ipaddress.ip_address(addr.strip())
+        return ("ipv{}".format(ip.version), ip.exploded)
+    except ValueError:
+        raise ValueError('Invalid IP address: %s' % addr)
