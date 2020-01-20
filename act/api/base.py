@@ -75,11 +75,14 @@ Args:
     # Add User ID as header
     requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
 
-    res = requests.request(
-        method,
-        url,
-        **requests_kwargs
-    )
+    try:
+        res = requests.request(
+            method,
+            url,
+            **requests_kwargs
+        )
+    except requests.exceptions.ConnectionError as e:
+        raise ResponseError("Connection error {}".format(e))
 
     if res.status_code == 412:
         error_messages = res.json()["messages"]
