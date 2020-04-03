@@ -1,3 +1,5 @@
+import copy
+import functools
 import ipaddress
 import itertools
 import logging
@@ -9,15 +11,11 @@ from typing import List, TextIO, Optional, Text, Tuple
 
 import act.api
 
-from cachetools import LRUCache
-
 from . import DEFAULT_VALIDATOR
 from .base import ActBase, Config, Origin
 from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
-
-_CACHE=LRUCache(maxsize=4096)
 
 def as_list(value):
     "Encapsulate value in list if value is not already a list/tuple"
@@ -28,6 +26,7 @@ def as_list(value):
     return value
 
 
+@functools.lru_cache(maxsize=4096)
 def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[TextIO] = None) -> None:
     """
     add fact if we configured act_baseurl - if not print fact
@@ -42,26 +41,21 @@ def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[Te
     # because that breaks redirection in pytest
     # https://github.com/pytest-dev/pytest/issues/2178
 
-    # We have switched from functools.lru_cache to a specific cache from cachetools
-    # because the functools.lru_cache decorator did not handle facts as expected
+    # Take copy of fact, if not it will be updated when added to the platform
+    # and it will create problems when added to the cace with the lru_cache decorator
 
-    # This was recently handled, skip
-    if hash(fact) in _CACHE:
-        return
-
-    # Add to cache so it is skipped later
-    _CACHE[hash(fact)] = True
+    fact_copy = copy.deepcopy(fact)
 
     if not output_filehandle:
         output_filehandle = sys.stdout
 
-    if fact.config.act_baseurl:  # type: ignore
-        fact.add()
+    if fact_copy.config.act_baseurl:  # type: ignore
+        fact_copy.add()
     else:
         if output_format == "json":
-            output_filehandle.write('{}\n'.format(fact.json()))
+            output_filehandle.write('{}\n'.format(fact_copy.json()))
         elif output_format == "str":
-            output_filehandle.write('{}\n'.format(str(fact)))
+            output_filehandle.write('{}\n'.format(str(fact_copy)))
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
