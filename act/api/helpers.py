@@ -44,18 +44,18 @@ def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[Te
     # Take copy of fact, if not it will be updated when added to the platform
     # and it will create problems when added to the cace with the lru_cache decorator
 
-    fact = copy.deepcopy(fact)
+    fact_copy = copy.deepcopy(fact)
 
     if not output_filehandle:
         output_filehandle = sys.stdout
 
-    if fact.config.act_baseurl:  # type: ignore
-        fact.add()
+    if fact_copy.config.act_baseurl:  # type: ignore
+        fact_copy.add()
     else:
         if output_format == "json":
-            output_filehandle.write('{}\n'.format(fact.json()))
+            output_filehandle.write('{}\n'.format(fact_copy.json()))
         elif output_format == "str":
-            output_filehandle.write('{}\n'.format(str(fact)))
+            output_filehandle.write('{}\n'.format(str(fact_copy)))
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
 
