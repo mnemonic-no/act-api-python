@@ -518,7 +518,11 @@ Return: List of facts
     path = my_uri.path
     query = my_uri.query
     addr = my_uri.hostname
-    port = my_uri.port
+
+    try:
+        port = my_uri.port
+    except ValueError as e:
+        raise act.api.base.ValidationError(f"Error parsing port in URI {uri}: {e}")
 
     if not (scheme and addr):
         raise act.api.base.ValidationError("URI requires both scheme and address part")
