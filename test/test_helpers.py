@@ -33,6 +33,9 @@ def test_uri_should_fail() -> None:  # type: ignore
     with pytest.raises(act.api.base.ValidationError):
         act.api.helpers.uri_facts(api, "127.0.0.1")
 
+    with pytest.raises(act.api.base.ValidationError):
+        act.api.helpers.uri_facts(api, "http://localhost:test")
+
 
 def test_add_uri_ipv4() -> None:  # type: ignore
     """ Test for extraction of facts from uri with ipv4 """
