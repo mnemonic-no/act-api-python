@@ -512,17 +512,16 @@ Return: List of facts
 """
     facts = []
 
-    my_uri = urllib.parse.urlparse(uri)
-
-    scheme = my_uri.scheme
-    path = my_uri.path
-    query = my_uri.query
-    addr = my_uri.hostname
-
     try:
+        my_uri = urllib.parse.urlparse(uri)
+
+        scheme = my_uri.scheme
+        path = my_uri.path
+        query = my_uri.query
+        addr = my_uri.hostname
         port = my_uri.port
     except ValueError as e:
-        raise act.api.base.ValidationError(f"Error parsing port in URI {uri}: {e}")
+        raise act.api.base.ValidationError(f"Error parsing URI: {uri}: {e}")
 
     if not (scheme and addr):
         raise act.api.base.ValidationError("URI requires both scheme and address part")
