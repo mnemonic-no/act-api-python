@@ -224,7 +224,7 @@ fact_search(keywords='', object_type=[], fact_type=[], object_value=[], fact_val
         fact_value (str[] | str):     Only return Facts matching a specific value
         organization (str[] | str):   Only return Facts belonging to
                                       a specific Organization
-        source (str[] | str):         Only return Facts coming from a specific Source
+        origin (str[] | str):         Only return Facts coming from a specific Origin
         include_retracted (bool):     Include retracted Facts (default=False)
         before (timestamp):           Only return Facts added before a specific
                                       timestamp. Timestamp is on this format:
