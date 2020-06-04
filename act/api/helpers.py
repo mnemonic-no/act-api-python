@@ -5,8 +5,9 @@ import itertools
 import logging
 import os
 import sys
+import traceback
 import urllib.parse
-from logging import warning
+from logging import error, warning
 from typing import List, TextIO, Optional, Text, Tuple
 
 import act.api
@@ -224,6 +225,11 @@ object and authentication information is passed from the
 act object."""
 
         f = Fact(*args, **kwargs).configure(self.config)
+
+        if not f.type:
+            error("Missing fact type: %s, \nTraceback:\n%s",
+                  f.data,
+                  "".join(traceback.format_stack()))
 
         if not f.origin:
             # If origin is not specified explicit on the fact, use origin from default config
