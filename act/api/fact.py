@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 import time
-from logging import info, warning
+from logging import info, error, warning
 
 import act.api
 from act.api import RE_UUID_MATCH
@@ -609,7 +609,10 @@ Returns retracted fact.
             out += "({}/{}) -".format(self.source_object.type.name, self.source_object.value)
 
         # Add fact type
-        out += "[{}".format(self.type.name)
+        if self.type:
+            out += "[{}".format(self.type.name)
+        else:
+            error("Fact has no type, %s", self.data)
 
         # Add value if set
         if self.value and not self.value.startswith("-"):
