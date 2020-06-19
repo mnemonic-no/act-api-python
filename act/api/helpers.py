@@ -80,33 +80,7 @@ class Act(ActBase):
 
         self.configure(Config(act_baseurl, user_id, requests_common_kwargs, origin_name, origin_id))
 
-        self.setup_logging(log_level, log_file, log_prefix)
-
-    def setup_logging(
-            self,
-            log_level="debug",
-            log_file=None,
-            log_prefix="act"):
-        numeric_level = getattr(logging, log_level.upper(), None)
-
-        if not isinstance(numeric_level, int):
-            raise ValueError('Invalid log level: %s' % log_level)
-
-        datefmt = "%Y-%m-%d %H:%M:%S"
-        formatter = "[%(asctime)s] app=" + log_prefix + " level=%(levelname)s msg=%(message)s"
-
-        if log_file:
-            logging.basicConfig(
-                level=numeric_level,
-                filename=log_file,
-                format=formatter,
-                datefmt=datefmt)
-        else:
-            logging.basicConfig(
-                level=numeric_level,
-                stream=sys.stdout,
-                format=formatter,
-                datefmt=datefmt)
+        act.api.utils.setup_logging(log_level, log_file, log_prefix)
 
     # pylint: disable=unused-argument,dangerous-default-value
     def fact_search(
