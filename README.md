@@ -413,7 +413,7 @@ The unknowns are marked using value "*". And after the chain is created they wil
         c.fact("targets").source("incident", "*").destination("organization", "*"),
         c.fact("memberOf").source("organization", "*").destination("sector", "energy"),
     )
->>> chain = act.fact.fact_chain(*facts)
+>>> chain = act.api.fact.fact_chain(*facts)
 >>> for fact in chain:
         fact.add()
 ```
