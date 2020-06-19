@@ -1,6 +1,7 @@
 import logging
 import sys
 import re
+import time
 import act.api
 
 
@@ -17,7 +18,7 @@ def setup_logging(loglevel="debug", logfile=None, prefix="act"):
     if logfile:
         logging.basicConfig(
             level=numeric_level,
-            filename=logfile,
+            filename=time.strftime(logfile),
             format=formatter,
             datefmt=datefmt)
     else:
