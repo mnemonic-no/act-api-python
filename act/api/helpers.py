@@ -69,7 +69,8 @@ class Act(ActBase):
     def __init__(
             self,
             act_baseurl,
-            user_id,
+            user_id = None,
+            argus_apikey = None,
             log_level="debug",
             log_file=None,
             log_prefix="act",
@@ -78,7 +79,15 @@ class Act(ActBase):
             origin_id=None):
         super(Act, self).__init__()
 
-        self.configure(Config(act_baseurl, user_id, requests_common_kwargs, origin_name, origin_id))
+        self.configure(
+            Config(
+                act_baseurl,
+                user_id,
+                argus_apikey,
+                requests_common_kwargs,
+                origin_name,
+                origin_id)
+            )
 
         act.api.utils.setup_logging(log_level, log_file, log_prefix)
 

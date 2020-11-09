@@ -45,11 +45,13 @@ ERROR_HANDLER = {
         # Mapping of message templates provided in 412 errors from backend to
         # Exceptions that will be raised
         "object.not.valid": lambda msg: ValidationError(
+            "{message} ({field}={parameter})".format(**msg)),
+        "organization.not.exist": lambda msg: ValidationError(
             "{message} ({field}={parameter})".format(**msg))
 }
 
 
-def request(method, user_id, url, requests_common_kwargs = None, **kwargs):
+def request(method, config, url, requests_common_kwargs = None, **kwargs):
     """Perform requests towards API
 
 Args:
@@ -73,7 +75,12 @@ Args:
         requests_kwargs["headers"] = {}
 
     # Add User ID as header
-    requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
+    if config.user_id:
+        requests_kwargs["headers"]["ACT-User-ID"] = str(config.user_id)
+
+    # Add User ID as header
+    if config.argus_apikey:
+        requests_kwargs["headers"]["Argus-API-Key"] = config.argus_apikey
 
     try:
         res = requests.request(
@@ -191,12 +198,14 @@ class Config(object):
     """Config object"""
     act_baseurl = None
     user_id = None
+    argus_apikey = None
     requests_common_kwargs = {}
 
     def __init__(
             self,
             act_baseurl,
             user_id,
+            argus_apikey,
             requests_common_kwargs = None,
             origin_name=None,
             origin_id=None):
@@ -215,6 +224,7 @@ class Config(object):
 
         self.act_baseurl = act_baseurl
         self.user_id = user_id
+        self.argus_apikey = argus_apikey
         self.requests_common_kwargs = requests_common_kwargs
         self.origin_name = origin_name
         self.origin_id = origin_id
@@ -243,7 +253,7 @@ class ActBase(Schema):
 
         response = request(
             method,
-            self.config.user_id,
+            self.config,
             "{}/{}".format(self.config.act_baseurl, uri),
             self.config.requests_common_kwargs,
             **kwargs
