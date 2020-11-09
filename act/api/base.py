@@ -323,10 +323,8 @@ class Organization(ActBase):
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
-        if not self.id:
-            return None
-
-        return self.id
+        # otherwize return id or name
+        return self.id or self.name or None
 
 
 @functools.lru_cache(maxsize=128)
