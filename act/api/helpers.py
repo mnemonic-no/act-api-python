@@ -75,10 +75,22 @@ class Act(ActBase):
             log_prefix="act",
             requests_common_kwargs=None,
             origin_name=None,
-            origin_id=None):
+            origin_id=None,
+            access_mode="RoleBased",
+            organization=None):
         super(Act, self).__init__()
 
-        self.configure(Config(act_baseurl, user_id, requests_common_kwargs, origin_name, origin_id))
+        self.configure(
+            Config(
+                act_baseurl,
+                user_id,
+                requests_common_kwargs,
+                origin_name,
+                origin_id,
+                access_mode,
+                organization
+                )
+            )
 
         act.api.utils.setup_logging(log_level, log_file, log_prefix)
 
@@ -204,6 +216,14 @@ act object."""
             error("Missing fact type: %s, \nTraceback:\n%s",
                   f.data,
                   "".join(traceback.format_stack()))
+
+        f.access_mode = f.access_mode or f.config.access_mode
+        f.organization = f.organization or f.config.organization
+
+        if f.access_mode not in act.api.ACCESS_MODES:
+            raise act.api.base.ArgumentError(
+                f"Illegal access_mode: {f.access_mode}. Must be one of " +
+                f"{','.join(act.api.ACCESS_MODES)}")
 
         if not f.origin:
             # If origin is not specified explicit on the fact, use origin from default config

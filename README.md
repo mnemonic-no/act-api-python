@@ -5,6 +5,14 @@ python-act is a library used to connect to the [ACT platform](https://github.com
 The source code for this API is availble on [github](https://github.com/mnemonic-no/act-api-python) and on
 [PyPi](https://pypi.org/project/act-api).
 
+# Changelog
+
+## 1.0.27
+
+* facts created with act.api.Act.fact() will now have "RoleBased" as default access_mode.
+  You can initialize with act.api.Act(access_mode="Public") to get the old defaults.
+
+
 # Setup
 
 Install from PyPi:

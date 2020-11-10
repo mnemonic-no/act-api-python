@@ -310,7 +310,7 @@ class Fact(ActBase):
         Field("last_seen_timestamp", serializer=False),
         Field("in_reference_to", deserializer=ReferencedFact),
         Field("organization", deserializer=Organization),
-        Field("access_mode", default="Public"),
+        Field("access_mode"),
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
