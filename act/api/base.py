@@ -51,12 +51,13 @@ ERROR_HANDLER = {
 }
 
 
-def request(method, config, url, requests_common_kwargs = None, **kwargs):
+def request(method, user_id, argus_apikey, url, requests_common_kwargs = None, **kwargs):
     """Perform requests towards API
 
 Args:
     method (str):         POST|GET
     user_id (int):        Act user ID
+    argus_apikey (str):   Argus API key
     url (str):            Absolute URL for the endpoint
     **kwargs (keywords):  Additional options passed to requests json parameter
                           the following fields:
@@ -75,12 +76,12 @@ Args:
         requests_kwargs["headers"] = {}
 
     # Add User ID as header
-    if config.user_id:
-        requests_kwargs["headers"]["ACT-User-ID"] = str(config.user_id)
+    if user_id:
+        requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
 
     # Add User ID as header
-    if config.argus_apikey:
-        requests_kwargs["headers"]["Argus-API-Key"] = config.argus_apikey
+    if argus_apikey:
+        requests_kwargs["headers"]["Argus-API-Key"] = argus_apikey
 
     try:
         res = requests.request(
@@ -212,6 +213,7 @@ class Config(object):
         """
         act_baseurl - url to ACT instance
         use_id - ACT user ID
+        argus_apikey - Argus API KEY
         requests_common_kwargs - options that will be passed to requests when connecting to ACT api
         origin_name - ACT origin name that will be added to all facts where origin is not set
         origin_id - ACT origin id that will be added to all facts where origin is not set
@@ -253,7 +255,8 @@ class ActBase(Schema):
 
         response = request(
             method,
-            self.config,
+            self.config.user_id,
+            self.config.argus_apikey,
             "{}/{}".format(self.config.act_baseurl, uri),
             self.config.requests_common_kwargs,
             **kwargs
