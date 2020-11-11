@@ -75,10 +75,22 @@ class Act(ActBase):
             log_prefix="act",
             requests_common_kwargs=None,
             origin_name=None,
-            origin_id=None):
+            origin_id=None,
+            access_mode="RoleBased",
+            organization=None):
         super(Act, self).__init__()
 
-        self.configure(Config(act_baseurl, user_id, requests_common_kwargs, origin_name, origin_id))
+        self.configure(
+            Config(
+                act_baseurl,
+                user_id,
+                requests_common_kwargs,
+                origin_name,
+                origin_id,
+                access_mode,
+                organization
+                )
+            )
 
         act.api.utils.setup_logging(log_level, log_file, log_prefix)
 
@@ -199,18 +211,7 @@ object and authentication information is passed from the
 act object."""
 
         f = Fact(*args, **kwargs).configure(self.config)
-
-        if not f.type:
-            error("Missing fact type: %s, \nTraceback:\n%s",
-                  f.data,
-                  "".join(traceback.format_stack()))
-
-        if not f.origin:
-            # If origin is not specified explicit on the fact, use origin from default config
-            if f.config.origin_id:
-                f.origin = Origin(id=self.config.origin_id)
-            elif self.config.origin_name:
-                f.origin = Origin(name=self.config.origin_name)
+        f.set_defaults()
 
         return f
 

@@ -5,7 +5,7 @@ from logging import error, info, debug
 import re
 import requests
 from .schema import Schema, Field, schema_doc, MissingField
-from . import RE_UUID_MATCH
+from . import RE_UUID_MATCH, DEFAULT_ACCESS_MODE
 
 
 class NotImplemented(Exception):
@@ -45,6 +45,8 @@ ERROR_HANDLER = {
         # Mapping of message templates provided in 412 errors from backend to
         # Exceptions that will be raised
         "object.not.valid": lambda msg: ValidationError(
+            "{message} ({field}={parameter})".format(**msg)),
+        "organization.not.exist": lambda msg: ValidationError(
             "{message} ({field}={parameter})".format(**msg))
 }
 
@@ -73,7 +75,8 @@ Args:
         requests_kwargs["headers"] = {}
 
     # Add User ID as header
-    requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
+    if user_id:
+        requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
 
     try:
         res = requests.request(
@@ -199,7 +202,9 @@ class Config(object):
             user_id,
             requests_common_kwargs = None,
             origin_name=None,
-            origin_id=None):
+            origin_id=None,
+            access_mode=DEFAULT_ACCESS_MODE,
+            organization=None):
         """
         act_baseurl - url to ACT instance
         use_id - ACT user ID
@@ -218,6 +223,8 @@ class Config(object):
         self.requests_common_kwargs = requests_common_kwargs
         self.origin_name = origin_name
         self.origin_id = origin_id
+        self.access_mode = access_mode
+        self.organization = organization
 
 
 class ActBase(Schema):

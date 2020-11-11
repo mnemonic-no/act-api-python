@@ -310,7 +310,7 @@ class Fact(ActBase):
         Field("last_seen_timestamp", serializer=False),
         Field("in_reference_to", deserializer=ReferencedFact),
         Field("organization", deserializer=Organization),
-        Field("access_mode", default="Public"),
+        Field("access_mode"),
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
@@ -468,8 +468,35 @@ Returns meta fact
 
         # Add config to meta fact (user/auth)
         meta.configure(self.config)
+        meta.set_defaults()
 
         return meta
+
+    def set_defaults(self):
+        """
+            Set fact defaults from config if we have not specified
+            - access_mode
+            - origin
+            - organization
+        """
+
+        self.access_mode = self.access_mode or self.config.access_mode
+        self.organization = self.organization or self.config.organization
+
+        if self.access_mode not in act.api.ACCESS_MODES:
+            raise act.api.base.ArgumentError(
+                f"Illegal access_mode: {self.access_mode}. Must be one of " +
+                f"{','.join(act.api.ACCESS_MODES)}")
+
+        if not self.origin:
+            # If origin is not specified explicit on the fact, use origin from default config
+            if self.config.origin_id:
+                self.origin = Origin(id=self.config.origin_id)
+            elif self.config.origin_name:
+                self.origin = Origin(name=self.config.origin_name)
+
+        return self
+
 
     # pylint: disable=unused-argument,dangerous-default-value
 

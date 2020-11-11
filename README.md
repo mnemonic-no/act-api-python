@@ -5,6 +5,15 @@ python-act is a library used to connect to the [ACT platform](https://github.com
 The source code for this API is availble on [github](https://github.com/mnemonic-no/act-api-python) and on
 [PyPi](https://pypi.org/project/act-api).
 
+# Changelog
+
+## 1.0.27
+
+* facts created with act.api.Act.fact() will now have "RoleBased" as default access_mode.
+  You can initialize with act.api.Act(access_mode="Public") to get the old defaults.
+* facts created with act.api.fact.Fact() now requires the user to specify access_mode
+
+
 # Setup
 
 Install from PyPi:
@@ -71,16 +80,16 @@ Create a fact by calling `fact()`. The result can be chained using one or more `
 ```
 >>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f
-Fact(type='mentions', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
+Fact(type='mentions', access_mode='RoleBased', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
 
 ```
 >>> f.serialize()
-{'type': 'mentions', 'value': '', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
+{'type': 'mentions', 'value': '', 'accessMode': 'RoleBased', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 >>> f.json()
-'{"type": "mentions", "value": "", "accessMode": "Public", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
+'{"type": "mentions", "value": "", "accessMode": "RoleBased", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
 ```
 
 Since the fact is not yet added it does not have an id.
@@ -93,7 +102,7 @@ None
 Use `add()` to add the fact to the platform.
 ```
 >>> f.add()
-Fact(type='mentions', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3254b82c-9da7-4f96-88be-9c7c6fa04742'), destination_object=Object(type='ipv4', value='127.0.0.1', id='21fedc88-6c81-401a-87d3-bb601a77a861'))
+Fact(type='mentions', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), access_mode='RoleBased', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3eb92445-c88f-4128-8bd1-1cd27a95a088'), destination_object=Object(type='ipv4', value='127.0.0.1', id='95d200cf-89e9-4e6f-9e4f-973f2f88dd11'))
 ```
 
 The fact will be replaced with the fact added to the platform and it will now have an id.
@@ -117,7 +126,7 @@ You can specify origins, when creating facts:
 {'John Doe': '00000000-0000-0000-0000-000000000001', 'Test origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe'}
 >>> f = c.fact("mentions", origin=c.origin(name="Test origin")).source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f.serialize()
-{'type': 'mentions', 'value': '', 'origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
+{'type': 'mentions', 'value': '', 'origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe', 'accessMode': 'RoleBased', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 ```
 
 You can use `origin_name` or `origin_id` when connecting to the API to apply an origin to all facts:
@@ -126,6 +135,19 @@ You can use `origin_name` or `origin_id` when connecting to the API to apply an 
 >>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f.origin
 Origin(name='Test-origin')
+```
+
+### Specifying access_mode when crating facts
+
+Default access mode when creating facts are "RoleBased". This means that facts belong to an organization
+and only users with access to that organization have access to the fact.
+
+To create Public facts, available to everyone you can use `access_mode = "Public"`:
+
+```
+>>> f = c.fact("mentions", access_mode="Public").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
+>>> f
+Fact(type='mentions', access_mode='Public', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
 ```
 
 ## Get fact
@@ -147,17 +169,17 @@ Properties on objects can be retrieved by dot notation.
 Use `meta()` to create meta facts (facts about facts).
 
 ```
->>> f = c.fact(id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13').get()
+>>> f = c.fact(id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc').get()
 >>> import time
 >>> meta = f.meta("observationTime", int(time.time()))
 >>> meta
-Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='mentions', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value=1605100652, in_reference_to=ReferencedFact(type='mentions', id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc'), access_mode='RoleBased')
 ```
 As with facts, the meta fact is not sent to the backend, and you must use `add()` to submit it to the platform.
 
 ```
 >>> meta.add()
-Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='mentions', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value='1605100652', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, in_reference_to=ReferencedFact(type='mentions', id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc'), organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), access_mode='RoleBased')
 ```
 
 ## Get Meta facts
