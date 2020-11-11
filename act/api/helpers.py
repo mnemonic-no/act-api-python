@@ -211,26 +211,7 @@ object and authentication information is passed from the
 act object."""
 
         f = Fact(*args, **kwargs).configure(self.config)
-
-        if not (f.type or f.id):
-            error("Missing fact type: %s, \nTraceback:\n%s",
-                  f.data,
-                  "".join(traceback.format_stack()))
-
-        f.access_mode = f.access_mode or f.config.access_mode
-        f.organization = f.organization or f.config.organization
-
-        if f.access_mode not in act.api.ACCESS_MODES:
-            raise act.api.base.ArgumentError(
-                f"Illegal access_mode: {f.access_mode}. Must be one of " +
-                f"{','.join(act.api.ACCESS_MODES)}")
-
-        if not f.origin:
-            # If origin is not specified explicit on the fact, use origin from default config
-            if f.config.origin_id:
-                f.origin = Origin(id=self.config.origin_id)
-            elif self.config.origin_name:
-                f.origin = Origin(name=self.config.origin_name)
+        f.set_defaults()
 
         return f
 
