@@ -212,7 +212,7 @@ act object."""
 
         f = Fact(*args, **kwargs).configure(self.config)
 
-        if not f.type:
+        if not (f.type or f.id):
             error("Missing fact type: %s, \nTraceback:\n%s",
                   f.data,
                   "".join(traceback.format_stack()))

@@ -102,7 +102,7 @@ None
 Use `add()` to add the fact to the platform.
 ```
 >>> f.add()
-Fact(type='mentions', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3254b82c-9da7-4f96-88be-9c7c6fa04742'), destination_object=Object(type='ipv4', value='127.0.0.1', id='21fedc88-6c81-401a-87d3-bb601a77a861'))
+Fact(type='mentions', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), access_mode='RoleBased', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7', id='3eb92445-c88f-4128-8bd1-1cd27a95a088'), destination_object=Object(type='ipv4', value='127.0.0.1', id='95d200cf-89e9-4e6f-9e4f-973f2f88dd11'))
 ```
 
 The fact will be replaced with the fact added to the platform and it will now have an id.
@@ -169,17 +169,17 @@ Properties on objects can be retrieved by dot notation.
 Use `meta()` to create meta facts (facts about facts).
 
 ```
->>> f = c.fact(id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13').get()
+>>> f = c.fact(id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc').get()
 >>> import time
 >>> meta = f.meta("observationTime", int(time.time()))
 >>> meta
-Fact(type='observationTime', value=1544785280, in_reference_to=ReferencedFact(type='mentions', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value=1605100652, in_reference_to=ReferencedFact(type='mentions', id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc'), access_mode='RoleBased')
 ```
 As with facts, the meta fact is not sent to the backend, and you must use `add()` to submit it to the platform.
 
 ```
 >>> meta.add()
-Fact(type='observationTime', value='1544785280', in_reference_to=ReferencedFact(type='mentions', id='cf8a5e68-c87f-4595-ba19-cc85e01f2f13'))
+Fact(type='observationTime', value='1605100652', origin=Origin(name='John Doe', id='00000000-0000-0000-0000-000000000001'), confidence=1.0, in_reference_to=ReferencedFact(type='mentions', id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc'), organization=Organization(name='Test Organization 1', id='00000000-0000-0000-0000-000000000001'), access_mode='RoleBased')
 ```
 
 ## Get Meta facts
