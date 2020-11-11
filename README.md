@@ -11,6 +11,7 @@ The source code for this API is availble on [github](https://github.com/mnemonic
 
 * facts created with act.api.Act.fact() will now have "RoleBased" as default access_mode.
   You can initialize with act.api.Act(access_mode="Public") to get the old defaults.
+* facts created with act.api.fact.Fact() now requires the user to specify access_mode
 
 
 # Setup
@@ -79,16 +80,16 @@ Create a fact by calling `fact()`. The result can be chained using one or more `
 ```
 >>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f
-Fact(type='mentions', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
+Fact(type='mentions', access_mode='RoleBased', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
 ```
 
 The fact is not yet added to the platform. User `serialize()` or `json()` to see the parameters that will be sent to the platform when the fact is added.
 
 ```
 >>> f.serialize()
-{'type': 'mentions', 'value': '', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
+{'type': 'mentions', 'value': '', 'accessMode': 'RoleBased', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 >>> f.json()
-'{"type": "mentions", "value": "", "accessMode": "Public", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
+'{"type": "mentions", "value": "", "accessMode": "RoleBased", "sourceObject": {"type": "report", "value": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7"}, "destinationObject": {"type": "ipv4", "value": "127.0.0.1"}, "bidirectionalBinding": false}'
 ```
 
 Since the fact is not yet added it does not have an id.
@@ -125,7 +126,7 @@ You can specify origins, when creating facts:
 {'John Doe': '00000000-0000-0000-0000-000000000001', 'Test origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe'}
 >>> f = c.fact("mentions", origin=c.origin(name="Test origin")).source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f.serialize()
-{'type': 'mentions', 'value': '', 'origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe', 'accessMode': 'Public', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
+{'type': 'mentions', 'value': '', 'origin': '5da8b157-5129-4f2f-9b90-6d624d62eebe', 'accessMode': 'RoleBased', 'sourceObject': {'type': 'report', 'value': '87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'}, 'destinationObject': {'type': 'ipv4', 'value': '127.0.0.1'}, 'bidirectionalBinding': False}
 ```
 
 You can use `origin_name` or `origin_id` when connecting to the API to apply an origin to all facts:
@@ -134,6 +135,19 @@ You can use `origin_name` or `origin_id` when connecting to the API to apply an 
 >>> f = c.fact("mentions").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
 >>> f.origin
 Origin(name='Test-origin')
+```
+
+### Specifying access_mode when crating facts
+
+Default access mode when creating facts are "RoleBased". This means that facts belong to an organization
+and only users with access to that organization have access to the fact.
+
+To create Public facts, available to everyone you can use `access_mode = "Public"`:
+
+```
+>>> f = c.fact("mentions", access_mode="Public").source("report", "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7").destination("ipv4", "127.0.0.1")
+>>> f
+Fact(type='mentions', access_mode='Public', source_object=Object(type='report', value='87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7'), destination_object=Object(type='ipv4', value='127.0.0.1'))
 ```
 
 ## Get fact
