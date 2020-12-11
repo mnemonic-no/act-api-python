@@ -413,6 +413,7 @@ This is not called directly, but are called from add() if Fact is not a meta fac
         # Special serializer for source/destination objects
         params["sourceObject"] = object_serializer(self.source_object)
         params["destinationObject"] = object_serializer(self.destination_object)
+        params["origin"] = origin_serializer(self.origin)
 
         fact = self.api_post("v1/fact", **params)["data"]
 

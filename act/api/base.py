@@ -334,6 +334,14 @@ class Organization(ActBase):
         return self.id or self.name or None
 
 
+def origin_serializer(origin):
+        # Return None for empty objects (non initialized origins)
+        # otherwize return id or name
+        if not origin:
+            return None
+        return origin.id or origin.name
+
+
 class Origin(ActBase):
     """Manage Origin"""
 
@@ -351,11 +359,6 @@ class Origin(ActBase):
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
         super(Origin, self).__init__(*args, **kwargs)
-
-    def serialize(self):
-        # Return None for empty objects (non initialized origins)
-        # otherwize return id or name
-        return self.id or self.name or None
 
     def get(self):
         """Get Origin"""
