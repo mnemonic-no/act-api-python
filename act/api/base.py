@@ -28,14 +28,6 @@ class ValidationError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
-class OriginMismatch(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
-
-class OriginDoesNotExist(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
-
 class NotConnected(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
@@ -334,66 +326,12 @@ class Organization(ActBase):
         return self.id or self.name or None
 
 
-@functools.lru_cache(maxsize=128)
-def origin_map(config):
-    """ Return lookup dictionary (name: uuid) for all known origins """
-
-    # We put this as a separate function, with only config (baseurl, etc)
-    # as the parameter. In this way, the cache will be used, since
-    # the config will always be the same within the same session
-
-    if not config.act_baseurl:
-        raise NotConnected("act_baseurl is not configured, unable to fetch origins")
-
-    # Create base object using the specified configuration
-    base = ActBase()
-    base.configure(config)
-
-    debug("Looking up origins")
-
-    # Return dictionary of name -> uuid of origins
-    return {
-        origin["name"]: origin["id"]
-        for origin in base.api_get(
-            "v1/origin",
-            params={"limit": 0, "includeDeleted": False})["data"]
-    }
-
-
-def origin_lookup_serializer(origin, config=None):
-    """ Serializer for origins that will lookup by name and verify name/id"""
-
-    if config and config.act_baseurl:  # type: ignore
-        # If we have specified act_baseurl, i.e we are connected to a backend,
-        # serialize origin to uuid (or None)
-
+def origin_serializer(origin):
+        # Return None for empty objects (non initialized origins)
+        # otherwize return id or name
         if not origin:
             return None
-
-        if origin.id and not origin.name:
-            # Origin specified by uuid, use this directly
-            return origin.id
-
-        if origin.name and not origin.id:
-            # Lookup uuid by name
-            origin_id = origin_map(config).get(origin.name)
-            if not origin_id:
-                raise OriginDoesNotExist("Unable to find origin with name {}".format(origin.name))
-            return origin_id
-
-        if origin.id and origin.name:
-            if origin_map(config).get(origin.name) == origin.id:
-                return origin.id
-
-            raise OriginMismatch("Origin name and uuid specified, " +
-                                 "but the uuid ({}) does not represent ".format(origin.id) +
-                                 "the origin with this name ({})".format(origin.name))
-        # No origin
-        return None
-
-    # Use default serialization, which will include a dictionary of the origin
-    # object
-    return origin.serialize()
+        return origin.id or origin.name
 
 
 class Origin(ActBase):
