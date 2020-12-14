@@ -4,7 +4,7 @@ import pytest
 import responses
 
 import act
-from act.api import RE_TIMESTAMP, RE_TIMESTAMP_MATCH, RE_UUID, RE_UUID_MATCH
+from act.api.re import TIMESTAMP, TIMESTAMP_MATCH, UUID, UUID_MATCH
 from act.api.fact import Fact
 from act.api.obj import Object
 
@@ -60,11 +60,11 @@ def test_add_fact():
         "(ipv4/127.0.0.1) -[seenIn/report]-> (report/87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7)"
 
     # id, timestamp and organization should now be fetched from API
-    assert re.search(RE_UUID_MATCH, f.id)
-    assert re.search(RE_TIMESTAMP_MATCH, f.timestamp)
-    assert re.search(RE_UUID_MATCH, f.organization.id)
+    assert re.search(UUID_MATCH, f.id)
+    assert re.search(TIMESTAMP_MATCH, f.timestamp)
+    assert re.search(UUID_MATCH, f.organization.id)
     # Not implemented/stable in backend API yet
-    # self.assertRegex(f.origin.id, RE_UUID_MATCH)
+    # self.assertRegex(f.origin.id, UUID_MATCH)
 
 
 def test_add_fact_origin():
@@ -162,7 +162,7 @@ def test_add_meta_fact():
 
     c = act.api.Act("http://localhost:8080", 1)
 
-    uuid = re.search(RE_UUID, mock["url"]).group("uuid")
+    uuid = re.search(UUID, mock["url"]).group("uuid")
 
     f = c.fact(id=uuid)
 
@@ -198,7 +198,7 @@ def test_create_fact_type():
                 True)]).add()
 
     assert fact_type.name == "threatActorAlias"
-    assert re.search(RE_UUID_MATCH, fact_type.id)
+    assert re.search(UUID_MATCH, fact_type.id)
 
 
 @responses.activate
@@ -237,7 +237,7 @@ def test_fact_search():
     assert facts.count > 1
 
     # All facts should have an UUID
-    assert all([re.search(RE_UUID_MATCH, fact.id) for fact in facts])
+    assert all([re.search(UUID_MATCH, fact.id) for fact in facts])
 
 
 @responses.activate
@@ -250,7 +250,7 @@ def test_fact_acl():
         status=mock["status_code"])
 
     c = act.api.Act("http://localhost:8080", 1)
-    uuid = re.search(RE_UUID, mock["url"]).group("uuid")
+    uuid = re.search(UUID, mock["url"]).group("uuid")
     acl = c.fact(id=uuid).get_acl()
     assert acl == []
 
@@ -267,11 +267,11 @@ def test_fact_get_comments():
     c = act.api.Act("http://localhost:8080", 1)
 
     # Get comments
-    uuid = re.search(RE_UUID, mock["url"]).group("uuid")
+    uuid = re.search(UUID, mock["url"]).group("uuid")
     comments = c.fact(id=uuid).get_comments()
     assert comments  # Should be non empty
     assert comments[0].comment == "Test comment"
-    assert re.search(RE_TIMESTAMP, comments[0].timestamp)
+    assert re.search(TIMESTAMP, comments[0].timestamp)
     assert all([isinstance(comment, act.api.base.Comment) for comment in comments])
 
 
@@ -287,7 +287,7 @@ def test_fact_add_comment():
     c = act.api.Act("http://localhost:8080", 1)
 
     # Get comments
-    uuid = re.search(RE_UUID, mock["url"]).group("uuid")
+    uuid = re.search(UUID, mock["url"]).group("uuid")
 
     c.fact(id=uuid).add_comment("Test comment")
 

@@ -5,7 +5,7 @@ import pickle
 import random
 import pytest
 from act.api.schema import Schema, Field
-from act.api import RE_UUID_MATCH, RE_TIMESTAMP_MATCH
+from act.api.re import UUID_MATCH, TIMESTAMP_MATCH
 
 # the Object/Fact and testdata here is a simplified version of the Object/Facts used in ACT
 # The purpose is to only test core functionality of the Schema
@@ -112,9 +112,9 @@ def __test_data():
 
 def test_schema():
     f = __test_data()
-    assert re.search(RE_UUID_MATCH, f.id)
-    assert re.search(RE_UUID_MATCH, f.type.id)
-    assert re.search(RE_TIMESTAMP_MATCH, f.timestamp)
+    assert re.search(UUID_MATCH, f.id)
+    assert re.search(UUID_MATCH, f.type.id)
+    assert re.search(TIMESTAMP_MATCH, f.timestamp)
 
     # Facts should not have "bindings" as they are stored in "objects"
     with pytest.raises(AttributeError):

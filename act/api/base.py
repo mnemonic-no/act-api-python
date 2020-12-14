@@ -5,7 +5,8 @@ from logging import error, info, debug
 import re
 import requests
 from .schema import Schema, Field, schema_doc, MissingField
-from . import RE_UUID_MATCH, DEFAULT_ACCESS_MODE
+from . import DEFAULT_ACCESS_MODE
+from .re import UUID_MATCH
 
 
 class NotImplemented(Exception):
@@ -25,10 +26,6 @@ class ResponseError(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 class ValidationError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
-
-class NotConnected(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
@@ -207,7 +204,7 @@ class Config(object):
         Only one of origin_name of origin_id must be specified.
         """
 
-        if origin_id and not re.search(RE_UUID_MATCH, origin_id):
+        if origin_id and not re.search(UUID_MATCH, origin_id):
             raise ArgumentError("origin_id id not a valaid UUID: {}".format(origin_id))
 
         self.act_baseurl = act_baseurl

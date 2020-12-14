@@ -2,7 +2,7 @@ import re
 import responses
 import pytest
 import act
-from act.api import RE_UUID_MATCH, RE_UUID
+from act.api.re import UUID_MATCH, UUID
 from act_test import get_mock_data
 
 
@@ -23,7 +23,7 @@ def test_get_object_types():
     assert "ipv4" in [object_t.name for object_t in object_types]
 
     # All object types should have a valid uuid
-    assert all([re.search(RE_UUID_MATCH, object_t.id)
+    assert all([re.search(UUID_MATCH, object_t.id)
                 for object_t in object_types])
 
 @responses.activate
@@ -41,7 +41,7 @@ def test_create_object_type():
         validator=".+").add()
 
     assert object_type.name == "threatActor"
-    assert re.search(RE_UUID_MATCH, object_type.id)
+    assert re.search(UUID_MATCH, object_type.id)
 
 
 @responses.activate
@@ -53,7 +53,7 @@ def test_get_object_by_uuid():
         json=mock["json"],
         status=mock["status_code"])
 
-    uuid = re.search(RE_UUID, mock["url"]).group("uuid")
+    uuid = re.search(UUID, mock["url"]).group("uuid")
 
     c = act.api.Act("http://localhost:8080", 1)
 
@@ -61,7 +61,7 @@ def test_get_object_by_uuid():
 
     facts = obj.facts()
 
-    assert all([re.search(RE_UUID_MATCH, fact.id) for fact in facts])
+    assert all([re.search(UUID_MATCH, fact.id) for fact in facts])
 
 
 @responses.activate
@@ -89,7 +89,7 @@ def test_get_object_by_type_value():
     assert all([isinstance(fact, act.api.fact.Fact) for fact in facts])
 
     # All facts should have an UUID
-    assert all([re.search(RE_UUID_MATCH, fact.id) for fact in facts])
+    assert all([re.search(UUID_MATCH, fact.id) for fact in facts])
 
 
 @responses.activate
@@ -127,7 +127,7 @@ def test_object_search():
         obj.object_value
 
     # All facts should have an UUID
-    assert all([re.search(RE_UUID_MATCH, obj.id) for obj in objects])
+    assert all([re.search(UUID_MATCH, obj.id) for obj in objects])
 
 
 @responses.activate
