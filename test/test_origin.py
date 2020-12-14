@@ -2,7 +2,7 @@ import re
 import responses
 import pytest
 import act
-from act.api import RE_UUID_MATCH, RE_UUID
+from act.api.re import UUID_MATCH, UUID
 from act_test import get_mock_data
 
 
@@ -24,7 +24,7 @@ def test_get_origins():
     assert "my-origin" in [origin.name for origin in origins]
 
     # All origins should have a valid uuid
-    assert all([re.search(RE_UUID_MATCH, origin.id)
+    assert all([re.search(UUID_MATCH, origin.id)
                 for origin in origins])
 
 
@@ -50,4 +50,4 @@ def test_create_origin():
     origin = o.add()
 
     assert origin.name == "my-origin"
-    assert re.search(RE_UUID_MATCH, origin.id)
+    assert re.search(UUID_MATCH, origin.id)

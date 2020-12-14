@@ -7,7 +7,7 @@ import time
 from logging import info, error, warning
 
 import act.api
-from act.api import RE_UUID_MATCH
+from act.api.re import UUID_MATCH
 
 from . import DEFAULT_VALIDATOR
 from .base import ActBase, Comment, NameSpace, Organization, Origin, origin_serializer
@@ -539,7 +539,7 @@ Returns Fact object
         if not self.id:
             raise MissingField("Must have fact ID to add comment")
 
-        if reply_to and not re.search(RE_UUID_MATCH, reply_to):
+        if reply_to and not re.search(UUID_MATCH, reply_to):
             raise ValidationError(
                 "reply_to is not a valid UUID: {}".format(reply_to))
 
