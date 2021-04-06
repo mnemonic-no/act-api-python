@@ -336,7 +336,7 @@ class Fact(ActBase):
         if not self.source_object.id and not (
                 self.source_object.type and self.source_object.value):
             raise MissingField(
-                "Must have either object_id or object_type and object_value")
+                f"Must have either object_id or object_type and object_value: {self.data}")
 
         return self
 
@@ -348,7 +348,7 @@ class Fact(ActBase):
         if not self.destination_object.id and not (
                 self.destination_object.type and self.destination_object.value):
             raise MissingField(
-                "Must have either object_id or object_type and object_value")
+                f"Must have either object_id or object_type and object_value: {self.data}")
 
         return self
 
