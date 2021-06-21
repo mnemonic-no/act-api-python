@@ -21,7 +21,7 @@ setup(
     url="https://github.com/mnemonic-no",
     packages=["act.api", "act.api.libs"],
     namespace_packages=['act'],
-    install_requires=['requests', 'responses'],
+    install_requires=['caep', 'requests', 'responses'],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
     classifiers=[
         "Development Status :: 4 - Beta",
