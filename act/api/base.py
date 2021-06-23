@@ -322,6 +322,9 @@ class Organization(ActBase):
         # otherwize return id or name
         return self.id or self.name or None
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 def origin_serializer(origin):
         # Return None for empty objects (non initialized origins)
@@ -388,6 +391,13 @@ class Origin(ActBase):
 
         info("Deleted origin: {}".format(self.name))
         return self
+
+    def __hash__(self):
+        return hash((
+            self.name,
+            self.namespace,
+            self.organization
+        ))
 
 
 class Comment(ActBase):

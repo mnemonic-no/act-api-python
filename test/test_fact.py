@@ -5,7 +5,7 @@ import responses
 
 import act
 from act.api.re import TIMESTAMP, TIMESTAMP_MATCH, UUID, UUID_MATCH
-from act.api.fact import Fact
+from act.api.fact import Fact, ReferencedFact
 from act.api.obj import Object
 
 # Organization is required by eval of repr(fact)
@@ -405,3 +405,25 @@ def test_fact_chain_illegal_tool():
     # Create fact chain
     with pytest.raises(act.api.fact.IllegalFactChain):
         act.api.fact.fact_chain(*facts)
+
+
+def test_fact_hash():
+    c = act.api.Act("http://localhost:8080", 1)
+    c2 = act.api.Act("http://localhost:8080", 1, origin_name="dummy")
+
+    f1 = c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident")
+    f2 = c2.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident")
+    f3 = c.fact("observedIn", origin="dummy").source("uri", "http://uri.no").destination("incident", "my-incident")
+
+    # Hash of two facts with different origin shot not be equal
+    assert hash(f1) != hash(f2)
+
+    # Hash of facts created with origin from default and explitcit added should be equal
+    assert hash(f2) == hash(f3)
+
+    m1 = f1.meta("observationTime", "1624450340")
+
+    # The hash of the `referenced` object in a meta fact should be equal to the hash
+    # of the fact that was used to create the meta fact
+    assert hash(m1.in_reference_to) == hash(f1)
+
