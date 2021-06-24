@@ -10,7 +10,7 @@ with open(path.join(this_directory, 'README.md'), "rb") as f:
 
 setup(
     name="act-api",
-    version="1.0.30",
+    version="2.0.0",
     author="mnemonic AS",
     author_email="opensource@mnemonic.no",
     description="Python library to connect to the ACT rest API",
@@ -19,9 +19,9 @@ setup(
     license="MIT",
     keywords="ACT, mnemonic",
     url="https://github.com/mnemonic-no",
-    packages=["act.api"],
+    packages=["act.api", "act.api.libs"],
     namespace_packages=['act'],
-    install_requires=['requests', 'responses'],
+    install_requires=['caep', 'requests', 'responses'],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
     classifiers=[
         "Development Status :: 4 - Beta",
