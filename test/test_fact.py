@@ -415,7 +415,7 @@ def test_fact_hash():
     f2 = c2.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident")
     f3 = c.fact("observedIn", origin="dummy").source("uri", "http://uri.no").destination("incident", "my-incident")
 
-    # Hash of two facts with different origin shot not be equal
+    # Hash of two facts with different origin should not be equal
     assert hash(f1) != hash(f2)
 
     # Hash of facts created with origin from default and explitcit added should be equal
@@ -423,7 +423,7 @@ def test_fact_hash():
 
     m1 = f1.meta("observationTime", "1624450340")
 
-    # The hash of the `referenced` object in a meta fact should be equal to the hash
+    # The hash of the `referenced` fact in a meta fact should be equal to the hash
     # of the fact that was used to create the meta fact
     assert hash(m1.in_reference_to) == hash(f1)
 
