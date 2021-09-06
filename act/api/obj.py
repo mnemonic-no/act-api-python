@@ -32,6 +32,12 @@ class ObjectType(ActBase):
 
         return self
 
+    def __hash__(self):
+        return hash((
+            self.name,
+            self.namespace
+        ))
+
 
 class ObjectStatistics(ActBase):
     """ObjectStatistics - serialized object specifying statistics"""
@@ -137,6 +143,12 @@ class Object(ActBase):
             return True
 
         return False
+
+    def __hash__(self):
+        return hash((
+            self.type,
+            self.value
+        ))
 
     def __str__(self):
         """

@@ -241,6 +241,12 @@ Args:
 
         return self
 
+    def __hash__(self):
+        return hash((
+            self.name,
+            self.namespace,
+        ))
+
 
 class ReferencedFact(ActBase):
     """Retracted Fact"""
@@ -249,7 +255,14 @@ class ReferencedFact(ActBase):
         Field("type", deserializer=FactType,
               serializer=lambda fact_type: fact_type.name),
         Field("value", default=""),
-        Field("id")
+        Field("id"),
+        Field("origin", deserializer=Origin),
+        Field("confidence"),
+        Field("organization", deserializer=Organization),
+        Field("access_mode"),
+        Field("source_object", deserializer=Object),
+        Field("destination_object", deserializer=Object),
+        Field("bidirectional_binding", default=False),
     ]
 
     def __eq__(self, other):
@@ -257,7 +270,7 @@ class ReferencedFact(ActBase):
 
         # If other is None, return True if id, type and value is None
         if other is None:
-            if not (self.id or self.type.name or self.value):
+            if not (self.id or self.type or self.value):
                 return True
             return False
 
@@ -266,16 +279,37 @@ class ReferencedFact(ActBase):
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
-        if not (self.id or self.type.name):
+        if not (self.id or self.type):
             return None
         # return default serializer
         return super(ReferencedFact, self).serialize()
 
     def __bool__(self):
-        # Return None for empty objects (non initialized objects)
-        if (self.type.name or self.value or self.id):
+        # Return False for empty objects (non initialized objects)
+        if (self.type or self.value or self.id):
             return True
         return False
+
+    def __hash__(self):
+        """
+        Hash of the reference fact.
+        """
+
+        # These fields should be identical to __hash__ in ReferencedFact, except
+        # for the last item which should be None (refering to whether we have
+        # any reference to other facts)
+        return hash((
+            self.type,
+            self.value,
+            self.origin,
+            self.confidence,
+            self.organization,
+            self.access_mode,
+            self.source_object,
+            self.destination_object,
+            self.bidirectional_binding,
+            None,
+        ))
 
 
 def object_serializer(obj):
@@ -444,6 +478,7 @@ This is not called directly, but are called from add() if Fact is a meta fact.
         }
 
         url = "v1/fact/uuid/{}/meta".format(self.in_reference_to.id)
+
         meta_fact = self.api_post(url, **params)["data"]
 
         self.data = {}
@@ -460,7 +495,15 @@ Takes the same arguments as Fact(), except for in_reference_to.
 Returns meta fact
     """
 
-        ref = ReferencedFact(type=self.type, value=self.value, id=self.id)
+        # Use all values used in serialization as parameters
+        # to create a referenced object
+        ref_arg = self.serialize()
+
+        # ID is not included in serialization, so this must be explicitly added
+        if self.id:
+            ref_arg["id"] = self.id
+
+        ref = ReferencedFact(**ref_arg)
 
         meta = Fact(*args, in_reference_to=ref, **kwargs)
 
@@ -616,10 +659,23 @@ Returns retracted fact.
 
     def __hash__(self):
         """
-        Hash of the fact. We use the string representation of the fact as seed.
+        Hash of the fact. Include all fields that makes the fact unique.
         """
 
-        return hash(str(self))
+        # These fields should be almost identical to __hash__ in ReferencedFact,
+        # unless "in_reference_to" which is always None in ReferenceFact
+        return hash((
+            self.type,
+            self.value,
+            self.origin,
+            self.confidence,
+            self.organization,
+            self.access_mode,
+            self.source_object,
+            self.destination_object,
+            self.bidirectional_binding,
+            self.in_reference_to,
+        ))
 
     def __str__(self):
         """
