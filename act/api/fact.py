@@ -477,6 +477,9 @@ This is not called directly, but are called from add() if Fact is a meta fact.
             if k not in ("inReferenceTo", "bidirectionalBinding") and v
         }
 
+        # Special serializer for origin
+        params["origin"] = origin_serializer(self.origin)
+
         url = "v1/fact/uuid/{}/meta".format(self.in_reference_to.id)
 
         meta_fact = self.api_post(url, **params)["data"]
@@ -676,6 +679,11 @@ Returns retracted fact.
             self.bidirectional_binding,
             self.in_reference_to,
         ))
+
+    def __eq__(self, other):
+        "Equality operator"
+
+        return hash(self) == hash(other)
 
     def __str__(self):
         """
