@@ -407,7 +407,7 @@ def test_fact_chain_illegal_tool():
         act.api.fact.fact_chain(*facts)
 
 
-def test_fact_hash():
+def test_fact_equality():
     c = act.api.Act("http://localhost:8080", 1)
     c2 = act.api.Act("http://localhost:8080", 1, origin_name="dummy")
 
@@ -417,13 +417,18 @@ def test_fact_hash():
 
     # Hash of two facts with different origin should not be equal
     assert hash(f1) != hash(f2)
+    assert f1 != f2
 
     # Hash of facts created with origin from default and explitcit added should be equal
     assert hash(f2) == hash(f3)
+    assert f2 == f3
 
     m1 = f1.meta("observationTime", "1624450340")
 
     # The hash of the `referenced` fact in a meta fact should be equal to the hash
     # of the fact that was used to create the meta fact
     assert hash(m1.in_reference_to) == hash(f1)
+    assert m1.in_reference_to == f1
 
+    assert act.api.fact.FactType("observedIn") == act.api.fact.FactType("observedIn")
+    assert act.api.fact.FactType("observedIn") == act.api.fact.FactType("observedIn", id="dummy")

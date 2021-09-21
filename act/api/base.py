@@ -276,28 +276,12 @@ Args:
         return self.api_request("GET", uri, params=params)
 
     def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return False # Different types -> not equal
+        "Equality operator"
 
-        for field, value in self.data.items():
-            # Only compare serialized fields. The other fields
-            # have different representation if they are created locally
-            # and not recieved from the back end
-            if self.get_field(field).serializer is False:
-                continue
-            if field == "id":
-                # Facts/objects may not have an ID, unless they are returned from the backend
-                # We will check for inconsistencies below
-                continue
-            if other.data.get(field) != value:
-                return False # Different field value
-
-        # Two objects where all fields are equal do not have the same id
-        if self.id and other.id and self.id != other.id:
-            raise InvalidData("Two objects with equal fields do not have the same id")
-
-        # All field values are equal
-        return True
+        try:
+            return hash(self) == hash(other)
+        except TypeError:
+            raise NotImplementedError(f"{self.__class__.__name__} is missing __hash__ function")
 
 
 class NameSpace(ActBase):
@@ -308,6 +292,13 @@ class NameSpace(ActBase):
         Field("id"),
     ]
 
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.name,
+        ))
+
+
 
 class Organization(ActBase):
     """Manage Organization"""
@@ -317,14 +308,16 @@ class Organization(ActBase):
         Field("id"),
     ]
 
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.name,
+        ))
+
     def serialize(self):
         # Return None for empty objects (non initialized objects)
         # otherwize return id or name
         return self.id or self.name or None
-
-    def __hash__(self):
-        return hash(self.name)
-
 
 def origin_serializer(origin):
         # Return None for empty objects (non initialized origins)
@@ -347,6 +340,14 @@ class Origin(ActBase):
         Field("type", serializer=False),
         Field("flags", serializer=False),
     ]
+
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.name,
+            self.namespace,
+            self.organization
+        ))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -392,14 +393,6 @@ class Origin(ActBase):
         info("Deleted origin: {}".format(self.name))
         return self
 
-    def __hash__(self):
-        return hash((
-            self.name,
-            self.namespace,
-            self.organization
-        ))
-
-
 class Comment(ActBase):
     """Namespace - serialized object specifying Namespace"""
 
@@ -410,3 +403,10 @@ class Comment(ActBase):
         Field("reply_to"),
         Field("origin", deserializer=Origin, serializer=False),
     ]
+
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.comment,
+            self.timestamp,
+        ))

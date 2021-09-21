@@ -148,3 +148,19 @@ def test_get_object_search():
     # Should contain both objects and facts
     assert any([isinstance(elem, act.api.obj.Object) for elem in path])
     assert any([isinstance(elem, act.api.fact.Fact) for elem in path])
+
+def test_equality():
+    c = act.api.Act("http://localhost:8080", 1)
+
+    obj1 = c.object(type="ipv4", value="127.0.0.1")
+    obj2 = c.object(type="ipv4", id="12345678-1234-5678-1234-567812345678", value="127.0.0.1")
+    obj3 = c.object(type="ipv4", value="127.0.0.2")
+
+    assert obj1 == obj2
+    assert obj1 != obj3
+
+    assert act.api.obj.Object("fqdn") == act.api.obj.Object("fqdn")
+
+    # Should be equal even though one of the items has an id
+    assert act.api.obj.Object("fqdn") == act.api.obj.Object("fqdn", id="dummy")
+    assert act.api.obj.Object("fqdn") != act.api.obj.Object("ipv4")

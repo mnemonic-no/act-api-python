@@ -35,27 +35,12 @@ class RelevantObjectBindings(ActBase):
             default=False)]
 
     def __hash__(self):
-        """
-        Hash of the object binding is the combination of
-        source/destination object and bidirectional
-        """
-
-        if self.source_object_type:
-            source = self.source_object_type.id
-        else:
-            source = None
-
-        if self.destination_object_type:
-            destination = self.destination_object_type.id
-        else:
-            destination = None
-
-        return hash((source, destination, self.bidirectional_binding))
-
-    def __eq__(self, other):
-        "Equality operator"
-
-        return hash(self) == hash(other)
+        return hash((
+            self.__class__.__name__,
+            self.source,
+            self.destination,
+            self.bidirectional_binding,
+        ))
 
 
 class RelevantFactBindings(ActBase):
@@ -67,14 +52,11 @@ class RelevantFactBindings(ActBase):
     ]
 
     def __hash__(self):
-        "Hash of the fact bindings is the ID itself"
-
-        return hash(self.id)
-
-    def __eq__(self, other):
-        "Equality operator"
-
-        return hash(self) == hash(other)
+        return hash((
+            self.__class__.__name__,
+            self.name,
+            self.fact_type
+        ))
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -265,17 +247,28 @@ class ReferencedFact(ActBase):
         Field("bidirectional_binding", default=False),
     ]
 
-    def __eq__(self, other):
-        """ Check equality with other object """
-
-        # If other is None, return True if id, type and value is None
-        if other is None:
-            if not (self.id or self.type or self.value):
-                return True
-            return False
-
-        # Otherwise, use equality check from super class
-        return super(ReferencedFact, self).__eq__(other)
+    def __hash__(self):
+        """
+        Hash of the reference fact.
+        """
+        # These fields should be identical to __hash__ in Fact, except
+        # for the last item which should be None (refering to whether we have
+        # any reference to other facts)
+        # Class type is also hard coded to "Fact" since it should have the
+        # same hash as a Fact with the same values
+        return hash((
+            "Fact",
+            self.type,
+            self.value,
+            self.origin,
+            self.confidence,
+            self.organization,
+            self.access_mode,
+            self.source_object,
+            self.destination_object,
+            self.bidirectional_binding,
+            None,
+        ))
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -289,28 +282,6 @@ class ReferencedFact(ActBase):
         if (self.type or self.value or self.id):
             return True
         return False
-
-    def __hash__(self):
-        """
-        Hash of the reference fact.
-        """
-
-        # These fields should be identical to __hash__ in ReferencedFact, except
-        # for the last item which should be None (refering to whether we have
-        # any reference to other facts)
-        return hash((
-            self.type,
-            self.value,
-            self.origin,
-            self.confidence,
-            self.organization,
-            self.access_mode,
-            self.source_object,
-            self.destination_object,
-            self.bidirectional_binding,
-            None,
-        ))
-
 
 def object_serializer(obj):
     if not obj:
@@ -349,6 +320,27 @@ class Fact(ActBase):
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
     ]
+
+    def __hash__(self):
+        """
+        Hash of the fact. Include all fields that makes the fact unique.
+        """
+
+        # These fields should be almost identical to __hash__ in ReferencedFact,
+        # unless "in_reference_to" which is always None in ReferenceFact
+        return hash((
+            self.__class__.__name__,
+            self.type,
+            self.value,
+            self.origin,
+            self.confidence,
+            self.organization,
+            self.access_mode,
+            self.source_object,
+            self.destination_object,
+            self.bidirectional_binding,
+            self.in_reference_to,
+        ))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -659,31 +651,6 @@ Returns retracted fact.
         self.deserialize(**fact)
 
         return self
-
-    def __hash__(self):
-        """
-        Hash of the fact. Include all fields that makes the fact unique.
-        """
-
-        # These fields should be almost identical to __hash__ in ReferencedFact,
-        # unless "in_reference_to" which is always None in ReferenceFact
-        return hash((
-            self.type,
-            self.value,
-            self.origin,
-            self.confidence,
-            self.organization,
-            self.access_mode,
-            self.source_object,
-            self.destination_object,
-            self.bidirectional_binding,
-            self.in_reference_to,
-        ))
-
-    def __eq__(self, other):
-        "Equality operator"
-
-        return hash(self) == hash(other)
 
     def __str__(self):
         """
