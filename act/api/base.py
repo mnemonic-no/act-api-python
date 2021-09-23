@@ -278,10 +278,11 @@ Args:
     def __eq__(self, other):
         "Equality operator"
 
-        try:
-            return hash(self) == hash(other)
-        except TypeError:
-            raise NotImplementedError(f"{self.__class__.__name__} is missing __hash__ function")
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        " __hash__ should be implemented on all derived classes"
+        raise NotImplementedError(f"{self.__class__.__name__} is missing __hash__ function")
 
 
 class NameSpace(ActBase):
