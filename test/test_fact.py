@@ -5,7 +5,7 @@ import responses
 
 import act
 from act.api.re import TIMESTAMP, TIMESTAMP_MATCH, UUID, UUID_MATCH
-from act.api.fact import Fact, ReferencedFact
+from act.api.fact import Fact
 from act.api.obj import Object
 
 # Organization is required by eval of repr(fact)

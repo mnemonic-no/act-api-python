@@ -230,58 +230,6 @@ Args:
         ))
 
 
-class ReferencedFact(ActBase):
-    """Retracted Fact"""
-
-    SCHEMA = [
-        Field("type", deserializer=FactType,
-              serializer=lambda fact_type: fact_type.name),
-        Field("value", default=""),
-        Field("id"),
-        Field("origin", deserializer=Origin),
-        Field("confidence"),
-        Field("organization", deserializer=Organization),
-        Field("access_mode"),
-        Field("source_object", deserializer=Object),
-        Field("destination_object", deserializer=Object),
-        Field("bidirectional_binding", default=False),
-    ]
-
-    def __hash__(self):
-        """
-        Hash of the reference fact.
-        """
-        # These fields should be identical to __hash__ in Fact, except
-        # for the last item which should be None (refering to whether we have
-        # any reference to other facts)
-        # Class type is also hard coded to "Fact" since it should have the
-        # same hash as a Fact with the same values
-        return hash((
-            "Fact",
-            self.type,
-            self.value,
-            self.origin,
-            self.confidence,
-            self.organization,
-            self.access_mode,
-            self.source_object,
-            self.destination_object,
-            self.bidirectional_binding,
-            None,
-        ))
-
-    def serialize(self):
-        # Return None for empty objects (non initialized objects)
-        if not (self.id or self.type):
-            return None
-        # return default serializer
-        return super(ReferencedFact, self).serialize()
-
-    def __bool__(self):
-        # Return False for empty objects (non initialized objects)
-        if (self.type or self.value or self.id):
-            return True
-        return False
 
 def object_serializer(obj):
     if not obj:
@@ -295,9 +243,7 @@ def object_serializer(obj):
 
     return "{}/{}".format(obj.type.name, obj.value)
 
-
-class Fact(ActBase):
-    """Manage facts"""
+class AbstractFact(ActBase):
 
     SCHEMA = [
         Field("type", deserializer=FactType,
@@ -313,86 +259,20 @@ class Fact(ActBase):
         Field("certainty", serializer=False),
         Field("timestamp", serializer=False),
         Field("last_seen_timestamp", serializer=False),
-        Field("in_reference_to", deserializer=ReferencedFact),
         Field("organization", deserializer=Organization),
         Field("access_mode"),
-        Field("source_object", deserializer=Object),
-        Field("destination_object", deserializer=Object),
-        Field("bidirectional_binding", default=False),
     ]
 
-    def __hash__(self):
-        """
-        Hash of the fact. Include all fields that makes the fact unique.
-        """
-
-        # These fields should be almost identical to __hash__ in ReferencedFact,
-        # unless "in_reference_to" which is always None in ReferenceFact
-        return hash((
-            self.__class__.__name__,
-            self.type,
-            self.value,
-            self.origin,
-            self.confidence,
-            self.organization,
-            self.access_mode,
-            self.source_object,
-            self.destination_object,
-            self.bidirectional_binding,
-            self.in_reference_to,
-        ))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
-        super(Fact, self).__init__(*args, **kwargs)
+        super(AbstractFact, self).__init__(*args, **kwargs)
 
     def __add_if_not_exists(self, *args, **kwargs):
         """Add binding if it does not exist"""
         binding = Object(*args, **kwargs)
         if binding not in self.data["objects"]:
             self.data["objects"].append(binding)
-
-        return self
-
-    def source(self, *args, **kwargs):
-        """Add source binding. Accepts the same arguments as Object()"""
-
-        self.data["source_object"] = Object(*args, **kwargs)
-
-        if not self.source_object.id and not (
-                self.source_object.type and self.source_object.value):
-            raise MissingField(
-                f"Must have either object_id or object_type and object_value: {self.data}")
-
-        return self
-
-    def destination(self, *args, **kwargs):
-        """Add source binding. Accepts the same arguments as Object()"""
-
-        self.data["destination_object"] = Object(*args, **kwargs)
-
-        if not self.destination_object.id and not (
-                self.destination_object.type and self.destination_object.value):
-            raise MissingField(
-                f"Must have either object_id or object_type and object_value: {self.data}")
-
-        return self
-
-    def bidirectional(
-            self,
-            source_object_type,
-            source_object_value,
-            destination_object_type,
-            destination_object_value):
-        """Add bidirectional binding."""
-
-        self.data["source_object"] = Object(
-            source_object_type,
-            source_object_value)
-        self.data["destination_object"] = Object(
-            destination_object_type,
-            destination_object_value)
-        self.data["bidirectional_binding"] = True
 
         return self
 
@@ -408,105 +288,6 @@ class Fact(ActBase):
         self.deserialize(**fact)
         return self
 
-    def add(self):
-        """Add (meta) fact
-Add this fact to the platform.
-
-Reutrns the newly created fact.
-"""
-        if self.in_reference_to:
-            # This is a meta fact
-            return self.__add_meta()
-
-        # This is not a meta fact
-        return self.__add_fact()
-
-    def __add_fact(self):
-        """Add fact
-
-This is not called directly, but are called from add() if Fact is not a meta fact.
-        """
-        started = time.time()
-
-        # Construct parameters to be sent to backend when creating fact
-        params = {
-            k: v
-            for k, v in self.serialize().items()
-            # Exclude inReferenceTo, which is added automatically for retracted facts and meta facts
-            if k not in ("inReferenceTo")
-        }
-
-        # Special serializer for source/destination objects
-        params["sourceObject"] = object_serializer(self.source_object)
-        params["destinationObject"] = object_serializer(self.destination_object)
-        params["origin"] = origin_serializer(self.origin)
-
-        fact = self.api_post("v1/fact", **params)["data"]
-
-        # Empty data and load new result from response
-        self.data = {}
-        self.deserialize(**fact)
-
-        info("Created fact in %.2fs: data=%s" % (time.time() - started, json.dumps(fact)))
-
-        return self
-
-    def __add_meta(self):
-        """Add meta fact to platform
-
-This is not called directly, but are called from add() if Fact is a meta fact.
-"""
-        started = time.time()
-        if not self.in_reference_to:
-            raise MissingField("Fact is not a meta fact (in_reference_to is not set)")
-
-        if not self.in_reference_to.id:
-            raise MissingField("Referenced fact must have fact ID")
-
-        params = {
-            k: v
-            for k, v in self.serialize().items()
-            if k not in ("inReferenceTo", "bidirectionalBinding") and v
-        }
-
-        # Special serializer for origin
-        params["origin"] = origin_serializer(self.origin)
-
-        url = "v1/fact/uuid/{}/meta".format(self.in_reference_to.id)
-
-        meta_fact = self.api_post(url, **params)["data"]
-
-        self.data = {}
-        self.deserialize(**meta_fact)
-        info("Created meta fact in %.2fs: data=%s" % (time.time() - started, json.dumps(meta_fact)))
-
-        return self
-
-    # pylint: disable=unused-argument,dangerous-default-value
-    def meta(self, *args, **kwargs):
-        """Create meta fact
-Creates a new meta fact with reference to this fact.
-Takes the same arguments as Fact(), except for in_reference_to.
-Returns meta fact
-    """
-
-        # Use all values used in serialization as parameters
-        # to create a referenced object
-        ref_arg = self.serialize()
-
-        # ID is not included in serialization, so this must be explicitly added
-        if self.id:
-            ref_arg["id"] = self.id
-
-        ref = ReferencedFact(**ref_arg)
-
-        meta = Fact(*args, in_reference_to=ref, **kwargs)
-
-        # Add config to meta fact (user/auth)
-        meta.configure(self.config)
-        meta.set_defaults()
-
-        return meta
 
     def set_defaults(self):
         """
@@ -587,6 +368,168 @@ Returns Fact object
 
         return self
 
+    def __str__(self):
+        """
+        Construnct string representation on this format
+        (src_obj_type/src_obj_value) -[fact_type/fact_value]-> (dest_obj_type/dest_obj_value)
+        """
+
+        out = ""
+
+        # Include source object if set
+        if self.source_object:
+            out += "({}/{}) -".format(self.source_object.type.name, self.source_object.value)
+
+        # Add fact type
+        if self.type:
+            out += "[{}".format(self.type.name)
+        else:
+            error("Fact has no type, %s", self.data)
+
+        # Add value if set
+        if self.value and not self.value.startswith("-"):
+            out += "/{}".format(self.value)
+        out += "]"
+
+        # Add destination object if set
+        if self.destination_object:
+
+            # Use arrow unless bidirectional
+            if self.bidirectional_binding:
+                out += "-"
+            else:
+                out += "->"
+
+            out += " ({}/{})".format(self.destination_object.type.name,
+                                     self.destination_object.value)
+
+        return out
+
+
+class Fact(AbstractFact):
+    """Manage facts"""
+
+    SCHEMA = AbstractFact.SCHEMA + [
+        Field("source_object", deserializer=Object),
+        Field("destination_object", deserializer=Object),
+        Field("bidirectional_binding", default=False),
+    ]
+
+    def __hash__(self):
+        """
+        Hash of the fact. Include all fields that makes the fact unique.
+        """
+
+        return hash((
+            self.__class__.__name__,
+            self.type,
+            self.value,
+            self.origin,
+            self.confidence,
+            self.organization,
+            self.access_mode,
+            self.source_object,
+            self.destination_object,
+            self.bidirectional_binding,
+        ))
+
+    def source(self, *args, **kwargs):
+        """Add source binding. Accepts the same arguments as Object()"""
+
+        self.data["source_object"] = Object(*args, **kwargs)
+
+        if not self.source_object.id and not (
+                self.source_object.type and self.source_object.value):
+            raise MissingField(
+                f"Must have either object_id or object_type and object_value: {self.data}")
+
+        return self
+
+    def destination(self, *args, **kwargs):
+        """Add source binding. Accepts the same arguments as Object()"""
+
+        self.data["destination_object"] = Object(*args, **kwargs)
+
+        if not self.destination_object.id and not (
+                self.destination_object.type and self.destination_object.value):
+            raise MissingField(
+                f"Must have either object_id or object_type and object_value: {self.data}")
+
+        return self
+
+    def bidirectional(
+            self,
+            source_object_type,
+            source_object_value,
+            destination_object_type,
+            destination_object_value):
+        """Add bidirectional binding."""
+
+        self.data["source_object"] = Object(
+            source_object_type,
+            source_object_value)
+        self.data["destination_object"] = Object(
+            destination_object_type,
+            destination_object_value)
+        self.data["bidirectional_binding"] = True
+
+        return self
+
+    def add(self):
+        """Add fact"""
+        started = time.time()
+
+        # Construct parameters to be sent to backend when creating fact
+        params = {
+            k: v
+            for k, v in self.serialize().items()
+            # Exclude inReferenceTo, which is added automatically for retracted facts and meta facts
+            if k not in ("inReferenceTo")
+        }
+
+        # Special serializer for source/destination objects
+        params["sourceObject"] = object_serializer(self.source_object)
+        params["destinationObject"] = object_serializer(self.destination_object)
+        params["origin"] = origin_serializer(self.origin)
+
+        fact = self.api_post("v1/fact", **params)["data"]
+
+        # Empty data and load new result from response
+        self.data = {}
+        self.deserialize(**fact)
+
+        info("Created fact in %.2fs: data=%s" % (time.time() - started, json.dumps(fact)))
+
+        return self
+
+    # pylint: disable=unused-argument,dangerous-default-value
+    def meta(self, *args, **kwargs):
+        """Create meta fact
+Creates a new meta fact with reference to this fact.
+Takes the same arguments as Fact(), except for in_reference_to.
+Returns meta fact
+    """
+
+        # Use all values used in serialization as parameters
+        # to create a referenced object
+        ref_arg = self.serialize()
+
+        # ID is not included in serialization, so this must be explicitly added
+        if self.id:
+            ref_arg["id"] = self.id
+
+        ref = Fact(**ref_arg)
+
+        meta = MetaFact(*args, in_reference_to=ref, **kwargs)
+
+        # Add config to meta fact (user/auth)
+        meta.configure(self.config)
+        meta.set_defaults()
+
+        return meta
+
+
+
     # pylint: disable=unused-argument,dangerous-default-value
     def get_meta(
             self,
@@ -652,42 +595,61 @@ Returns retracted fact.
 
         return self
 
-    def __str__(self):
+
+
+
+class MetaFact(AbstractFact):
+    """Manage meta facts"""
+
+    SCHEMA = AbstractFact.SCHEMA + [
+        Field("in_reference_to", deserializer=Fact),
+    ]
+
+    def __hash__(self):
         """
-        Construnct string representation on this format
-        (src_obj_type/src_obj_value) -[fact_type/fact_value]-> (dest_obj_type/dest_obj_value)
+        Hash of the fact. Include all fields that makes the fact unique.
         """
 
-        out = ""
+        return hash((
+            self.__class__.__name__,
+            self.type,
+            self.value,
+            self.origin,
+            self.confidence,
+            self.organization,
+            self.access_mode,
+            self.in_reference_to
+        ))
 
-        # Include source object if set
-        if self.source_object:
-            out += "({}/{}) -".format(self.source_object.type.name, self.source_object.value)
+    def add(self):
+        """Add meta fact to platform"""
 
-        # Add fact type
-        if self.type:
-            out += "[{}".format(self.type.name)
-        else:
-            error("Fact has no type, %s", self.data)
+        started = time.time()
+        if not self.in_reference_to:
+            raise MissingField("Fact is not a meta fact (in_reference_to is not set)")
 
-        # Add value if set
-        if self.value and not self.value.startswith("-"):
-            out += "/{}".format(self.value)
-        out += "]"
+        if not self.in_reference_to.id:
+            raise MissingField("Referenced fact must have fact ID")
 
-        # Add destination object if set
-        if self.destination_object:
+        params = {
+            k: v
+            for k, v in self.serialize().items()
+            if k not in ("inReferenceTo", "bidirectionalBinding") and v
+        }
 
-            # Use arrow unless bidirectional
-            if self.bidirectional_binding:
-                out += "-"
-            else:
-                out += "->"
+        # Special serializer for origin
+        params["origin"] = origin_serializer(self.origin)
 
-            out += " ({}/{})".format(self.destination_object.type.name,
-                                     self.destination_object.value)
+        url = "v1/fact/uuid/{}/meta".format(self.in_reference_to.id)
 
-        return out
+        meta_fact = self.api_post(url, **params)["data"]
+
+        self.data = {}
+        self.deserialize(**meta_fact)
+        info("Created meta fact in %.2fs: data=%s" % (time.time() - started, json.dumps(meta_fact)))
+
+        return self
+
 
 
 def fact_chain_seed(*facts):
