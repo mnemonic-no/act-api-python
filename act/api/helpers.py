@@ -14,7 +14,7 @@ import act.api
 
 from . import DEFAULT_VALIDATOR
 from .base import ActBase, Config, Origin
-from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
+from .fact import Fact, MetaFact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
 
@@ -216,6 +216,16 @@ object and authentication information is passed from the
 act object."""
 
         f = Fact(*args, **kwargs).configure(self.config)
+        f.set_defaults()
+
+        return f
+
+    @schema_doc(Fact.SCHEMA)
+    def meta_fact(self, *args, **kwargs):
+        """Manage meta facts. All arguments are passed to create a MetaFact
+object and authentication information is passed from the act object."""
+
+        f = MetaFact(*args, **kwargs).configure(self.config)
         f.set_defaults()
 
         return f

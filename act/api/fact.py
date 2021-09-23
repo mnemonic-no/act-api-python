@@ -230,7 +230,6 @@ Args:
         ))
 
 
-
 def object_serializer(obj):
     if not obj:
         return None
@@ -242,6 +241,7 @@ def object_serializer(obj):
         return obj.id
 
     return "{}/{}".format(obj.type.name, obj.value)
+
 
 class AbstractFact(ActBase):
 
@@ -261,20 +261,14 @@ class AbstractFact(ActBase):
         Field("last_seen_timestamp", serializer=False),
         Field("organization", deserializer=Organization),
         Field("access_mode"),
+        Field("source_object", deserializer=Object),
+        Field("destination_object", deserializer=Object),
+        Field("bidirectional_binding", default=False),
     ]
-
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
         super(AbstractFact, self).__init__(*args, **kwargs)
-
-    def __add_if_not_exists(self, *args, **kwargs):
-        """Add binding if it does not exist"""
-        binding = Object(*args, **kwargs)
-        if binding not in self.data["objects"]:
-            self.data["objects"].append(binding)
-
-        return self
 
     def get(self):
         """Get fact"""
@@ -316,7 +310,6 @@ class AbstractFact(ActBase):
 
 
     # pylint: disable=unused-argument,dangerous-default-value
-
     def get_acl(self):
         """Get acl"""
 
@@ -410,10 +403,9 @@ class Fact(AbstractFact):
     """Manage facts"""
 
     SCHEMA = AbstractFact.SCHEMA + [
-        Field("source_object", deserializer=Object),
-        Field("destination_object", deserializer=Object),
-        Field("bidirectional_binding", default=False),
+        Field("in_reference_to", serializer=False),
     ]
+
 
     def __hash__(self):
         """
@@ -528,8 +520,6 @@ Returns meta fact
 
         return meta
 
-
-
     # pylint: disable=unused-argument,dangerous-default-value
     def get_meta(
             self,
@@ -596,8 +586,6 @@ Returns retracted fact.
         return self
 
 
-
-
 class MetaFact(AbstractFact):
     """Manage meta facts"""
 
@@ -649,7 +637,6 @@ class MetaFact(AbstractFact):
         info("Created meta fact in %.2fs: data=%s" % (time.time() - started, json.dumps(meta_fact)))
 
         return self
-
 
 
 def fact_chain_seed(*facts):
