@@ -282,7 +282,7 @@ Args:
 
     def __hash__(self):
         " __hash__ should be implemented on all derived classes"
-        raise NotImplementedError(f"{self.__class__.__name__} is missing __hash__ function")
+        raise NotImplementedError(f"{self.__class__.__name__} is missing __hash__ method")
 
 
 class NameSpace(ActBase):
