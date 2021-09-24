@@ -173,7 +173,7 @@ Use `meta()` to create meta facts (facts about facts).
 >>> import time
 >>> meta = f.meta("observationTime", int(time.time()))
 >>> meta
-FactFact(type='observationTime', value=1605100652, in_reference_to=Fact(type='mentions', id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc'), access_mode='RoleBased')
+Fact(type='observationTime', value=1605100652, in_reference_to=Fact(type='mentions', id='f994810d-3e4e-4f08-b1c4-a0b67cd1b8fc'), access_mode='RoleBased')
 ```
 As with facts, the meta fact is not sent to the backend, and you must use `add()` to submit it to the platform.
 
