@@ -1,25 +1,29 @@
-import json
 import copy
-import functools
-from logging import error, info, debug
+import json
 import re
+from logging import error, info
+
 import requests
-from .schema import Schema, Field, schema_doc, MissingField
+
 from . import DEFAULT_ACCESS_MODE
 from .re import UUID_MATCH
+from .schema import Field, MissingField, Schema, schema_doc
 
 
 class NotImplemented(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+
 class ArgumentError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
+
 class ResponseError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
+
 
 class ValidationError(Exception):
     def __init__(self, *args, **kwargs):
@@ -27,16 +31,16 @@ class ValidationError(Exception):
 
 
 ERROR_HANDLER = {
-        # Mapping of message templates provided in 412 errors from backend to
-        # Exceptions that will be raised
-        "object.not.valid": lambda msg: ValidationError(
-            "{message} ({field}={parameter})".format(**msg)),
-        "organization.not.exist": lambda msg: ValidationError(
-            "{message} ({field}={parameter})".format(**msg))
+    # Mapping of message templates provided in 412 errors from backend to
+    # Exceptions that will be raised
+    "object.not.valid": lambda msg: ValidationError(
+        "{message} ({field}={parameter})".format(**msg)),
+    "organization.not.exist": lambda msg: ValidationError(
+        "{message} ({field}={parameter})".format(**msg))
 }
 
 
-def request(method, user_id, url, requests_common_kwargs = None, **kwargs):
+def request(method, user_id, url, requests_common_kwargs=None, **kwargs):
     """Perform requests towards API
 
 Args:
@@ -185,7 +189,7 @@ class Config(object):
             self,
             act_baseurl,
             user_id,
-            requests_common_kwargs = None,
+            requests_common_kwargs=None,
             origin_name=None,
             origin_id=None,
             access_mode=DEFAULT_ACCESS_MODE,
@@ -296,7 +300,6 @@ class NameSpace(ActBase):
         ))
 
 
-
 class Organization(ActBase):
     """Manage Organization"""
 
@@ -316,12 +319,13 @@ class Organization(ActBase):
         # otherwize return id or name
         return self.id or self.name or None
 
+
 def origin_serializer(origin):
-        # Return None for empty objects (non initialized origins)
-        # otherwize return id or name
-        if not origin:
-            return None
-        return origin.id or origin.name
+    # Return None for empty objects (non initialized origins)
+    # otherwize return id or name
+    if not origin:
+        return None
+    return origin.id or origin.name
 
 
 class Origin(ActBase):
@@ -389,6 +393,7 @@ class Origin(ActBase):
 
         info("Deleted origin: {}".format(self.name))
         return self
+
 
 class Comment(ActBase):
     """Namespace - serialized object specifying Namespace"""

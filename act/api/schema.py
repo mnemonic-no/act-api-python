@@ -1,7 +1,9 @@
 import copy
 import json
-from .utils import snake_to_camel, camel_to_snake
 from logging import info, warning
+
+from .utils import camel_to_snake, snake_to_camel
+
 
 def default_deserializer(value):
     """Default serializer. return trimmed value"""
@@ -246,11 +248,11 @@ class Schema(object):
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
-            return False # Different types -> not equal
+            return False  # Different types -> not equal
 
         for field, value in self.data.items():
             if other.data.get(field) != value:
-                return False # Different field value
+                return False  # Different field value
 
         # All field values are equal
         return True
@@ -275,7 +277,7 @@ class Schema(object):
                 continue
 
             if self.data.get(field.name) == field.default:
-                continue # Exclude default values
+                continue  # Exclude default values
 
             value = self[field.name]
 

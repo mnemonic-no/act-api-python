@@ -1,9 +1,11 @@
 import re
-import responses
+
 import pytest
-import act
-from act.api.re import UUID_MATCH, UUID
+import responses
 from act_test import get_mock_data
+
+import act
+from act.api.re import UUID, UUID_MATCH
 
 
 # pylint: disable=no-member
@@ -25,6 +27,7 @@ def test_get_object_types():
     # All object types should have a valid uuid
     assert all([re.search(UUID_MATCH, object_t.id)
                 for object_t in object_types])
+
 
 @responses.activate
 def test_create_object_type():
@@ -148,6 +151,7 @@ def test_get_object_search():
     # Should contain both objects and facts
     assert any([isinstance(elem, act.api.obj.Object) for elem in path])
     assert any([isinstance(elem, act.api.fact.Fact) for elem in path])
+
 
 def test_equality():
     c = act.api.Act("http://localhost:8080", 1)

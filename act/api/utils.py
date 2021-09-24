@@ -1,7 +1,8 @@
 import logging
-import sys
 import re
+import sys
 import time
+
 import act.api
 
 
@@ -36,6 +37,8 @@ def snake_to_camel(snake):
     return components[0] + "".join([comp.title() for comp in components[1:]])
 
 # https://stackoverflow.com/questions/1175208/elegant-python-function-to-convert-camelcase-to-snake-case
+
+
 def camel_to_snake(camel):
     """convert camelCase to snake_case"""
     camel = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camel)
