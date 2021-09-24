@@ -361,6 +361,45 @@ Returns Fact object
 
         return self
 
+    def retract(
+            self,
+            organization=None,
+            source=None,
+            access_mode=None,
+            comment=None,
+            acl=[]):
+        """Retract fact
+Args:
+    organization (str): Set owner of new Fact. If not set the current user's
+                        organization will be used (takes Organization UUID)
+    source (str):       Set Source of new Fact. If not set the current user
+                        will be used as Source (takes Source UUID)
+    access_mode:        Set access mode of new Fact. If not set the accessMode
+                        from the retracted Fact will be used = ['Public',
+                        'RoleBased', 'Explicit']
+    comment (str):      If set adds a comment to new Fact
+    acl (str[] | str):  If set defines explicitly who has access to new Fact (takes Subject UUIDs)
+
+All arguments are optional.
+
+Returns retracted fact.
+    """
+
+        params = act.api.utils.prepare_params(locals(), ensure_list=["acl"])
+
+        if self.id:
+            url = "v1/fact/uuid/{}/retract".format(self.id)
+        else:
+            raise MissingField(
+                "Must have object ID to retract object")
+
+        fact = self.api_post(url, **params)["data"]
+
+        self.data = {}
+        self.deserialize(**fact)
+
+        return self
+
     def __str__(self):
         """
         Construnct string representation on this format
@@ -405,7 +444,6 @@ class Fact(AbstractFact):
     SCHEMA = AbstractFact.SCHEMA + [
         Field("in_reference_to", serializer=False),
     ]
-
 
     def __hash__(self):
         """
@@ -545,45 +583,6 @@ Args:
 
         res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
         return act.api.base.ActResultSet(res, Fact)
-
-    def retract(
-            self,
-            organization=None,
-            source=None,
-            access_mode=None,
-            comment=None,
-            acl=[]):
-        """Retract fact
-Args:
-    organization (str): Set owner of new Fact. If not set the current user's
-                        organization will be used (takes Organization UUID)
-    source (str):       Set Source of new Fact. If not set the current user
-                        will be used as Source (takes Source UUID)
-    access_mode:        Set access mode of new Fact. If not set the accessMode
-                        from the retracted Fact will be used = ['Public',
-                        'RoleBased', 'Explicit']
-    comment (str):      If set adds a comment to new Fact
-    acl (str[] | str):  If set defines explicitly who has access to new Fact (takes Subject UUIDs)
-
-All arguments are optional.
-
-Returns retracted fact.
-    """
-
-        params = act.api.utils.prepare_params(locals(), ensure_list=["acl"])
-
-        if self.id:
-            url = "v1/fact/uuid/{}/retract".format(self.id)
-        else:
-            raise MissingField(
-                "Must have object ID to retract object")
-
-        fact = self.api_post(url, **params)["data"]
-
-        self.data = {}
-        self.deserialize(**fact)
-
-        return self
 
 
 class MetaFact(AbstractFact):
