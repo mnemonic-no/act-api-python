@@ -2,21 +2,21 @@ import copy
 import functools
 import ipaddress
 import itertools
-import logging
 import os
 import sys
-import traceback
 import urllib.parse
-from logging import error, warning
-from typing import List, TextIO, Optional, Text, Tuple
+from logging import warning
+from typing import List, Optional, Text, TextIO, Tuple
 
 import act.api
 
 from . import DEFAULT_VALIDATOR
 from .base import ActBase, Config, Origin
-from .fact import Fact, MetaFact, FactType, RelevantFactBindings, RelevantObjectBindings
+from .fact import (Fact, FactType, MetaFact, RelevantFactBindings,
+                   RelevantObjectBindings)
 from .obj import Object, ObjectType
 from .schema import schema_doc
+
 
 def as_list(value):
     "Encapsulate value in list if value is not already a list/tuple"
@@ -94,8 +94,8 @@ class Act(ActBase):
                 origin_id,
                 access_mode,
                 organization
-                )
             )
+        )
 
         act.api.utils.setup_logging(log_level, log_file, log_prefix)
 
@@ -478,7 +478,11 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
 
-def handle_uri(actapi: Act, uri: str, output_format="json", output_filehandle: Optional[TextIO] = None) -> None:
+def handle_uri(
+        actapi: Act,
+        uri: str,
+        output_format="json",
+        output_filehandle: Optional[TextIO] = None) -> None:
     """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
 
 Raises act.api.base.ValidationError if uri does not have scheme and address component.

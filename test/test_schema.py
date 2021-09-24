@@ -1,11 +1,13 @@
-import uuid
 import copy
-import re
 import pickle
 import random
+import re
+import uuid
+
 import pytest
-from act.api.schema import Schema, Field
-from act.api.re import UUID_MATCH, TIMESTAMP_MATCH
+
+from act.api.re import TIMESTAMP_MATCH, UUID_MATCH
+from act.api.schema import Field, Schema
 
 # the Object/Fact and testdata here is a simplified version of the Object/Facts used in ACT
 # The purpose is to only test core functionality of the Schema
@@ -93,6 +95,7 @@ object_test_data = {
     },
     "direction": "FactIsDestination"
 }
+
 
 def __test_data():
     # Generate test data

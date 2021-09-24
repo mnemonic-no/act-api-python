@@ -1,16 +1,16 @@
-import collections
 import copy
 import hashlib
 import json
 import re
 import time
-from logging import info, error, warning
+from logging import error, info, warning
 
 import act.api
 from act.api.re import UUID_MATCH
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, Comment, NameSpace, Organization, Origin, origin_serializer
+from .base import (ActBase, Comment, NameSpace, Organization, Origin,
+                   origin_serializer)
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
 
@@ -282,7 +282,6 @@ class AbstractFact(ActBase):
         self.deserialize(**fact)
         return self
 
-
     def set_defaults(self):
         """
             Set fact defaults from config if we have not specified
@@ -308,8 +307,8 @@ class AbstractFact(ActBase):
 
         return self
 
-
     # pylint: disable=unused-argument,dangerous-default-value
+
     def get_acl(self):
         """Get acl"""
 

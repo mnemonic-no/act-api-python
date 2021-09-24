@@ -1,6 +1,7 @@
 """ Test for act helpers """
 
 import pytest
+
 import act.api
 
 
@@ -90,7 +91,8 @@ def test_ip_obj() -> None:
 
     api = act.api.Act("", None, "error")
 
-    assert act.api.helpers.ip_obj("2001:67c:21e0::16") == ("ipv6", "2001:067c:21e0:0000:0000:0000:0000:0016")
+    assert act.api.helpers.ip_obj("2001:67c:21e0::16") == (
+        "ipv6", "2001:067c:21e0:0000:0000:0000:0000:0016")
     assert act.api.helpers.ip_obj("::1") == ("ipv6", "0000:0000:0000:0000:0000:0000:0000:0001")
     assert act.api.helpers.ip_obj("127.0.0.1") == ("ipv4", "127.0.0.1")
 
@@ -103,8 +105,8 @@ def test_ip_obj() -> None:
         assert act.api.helpers.ip_obj("300.300.300.300") == ("ipv4", "x.y.x")
 
     assert api.fact("resolvesTo") \
-            .source("fqdn", "localhost") \
-            .destination("ipv4", "127.0.0.1") \
+        .source("fqdn", "localhost") \
+        .destination("ipv4", "127.0.0.1") \
         == api.fact("resolvesTo") \
-            .source("fqdn", "localhost") \
-            .destination(*act.api.helpers.ip_obj("127.0.0.1"))
+        .source("fqdn", "localhost") \
+        .destination(*act.api.helpers.ip_obj("127.0.0.1"))

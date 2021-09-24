@@ -3,7 +3,7 @@ from logging import info, warning
 import act.api
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, NameSpace, ActResultSet, Organization
+from .base import ActBase, ActResultSet, NameSpace
 from .schema import Field, MissingField, schema_doc
 
 
@@ -85,7 +85,6 @@ class Object(ActBase):
             self.type,
             self.value
         ))
-
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):

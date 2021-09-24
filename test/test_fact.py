@@ -2,15 +2,14 @@ import re
 
 import pytest
 import responses
+from act_test import get_mock_data
 
 import act
-from act.api.re import TIMESTAMP, TIMESTAMP_MATCH, UUID, UUID_MATCH
+# Organization is required by eval of repr(fact)
+from act.api.base import Origin, Organization
 from act.api.fact import Fact
 from act.api.obj import Object
-
-# Organization is required by eval of repr(fact)
-from act.api.base import Organization, Origin
-from act_test import get_mock_data
+from act.api.re import TIMESTAMP, TIMESTAMP_MATCH, UUID, UUID_MATCH
 
 # pylint: disable=no-member
 
@@ -148,7 +147,6 @@ def test_add_fact_validation_error():
     except act.api.base.ValidationError as err:
         assert(str(err) == "Object did not pass validation against ObjectType. " +
                            "(objectValue=127.0.0.x)")
-
 
 
 @responses.activate
@@ -366,7 +364,6 @@ def test_fact_chain_incident_tool():
                             "(uri/http://uri.no) -[observedIn]-> (incident/*)"
 
 
-
 def test_fact_chain_tool_ta():
     """Example with multiple incoming links (which should be grouped)"""
     c = act.api.Act("", 1)
@@ -413,7 +410,8 @@ def test_fact_equality():
 
     f1 = c.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident")
     f2 = c2.fact("observedIn").source("uri", "http://uri.no").destination("incident", "my-incident")
-    f3 = c.fact("observedIn", origin="dummy").source("uri", "http://uri.no").destination("incident", "my-incident")
+    f3 = c.fact("observedIn", origin="dummy").source(
+        "uri", "http://uri.no").destination("incident", "my-incident")
 
     # Hash of two facts with different origin should not be equal
     assert hash(f1) != hash(f2)

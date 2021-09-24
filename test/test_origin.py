@@ -1,9 +1,10 @@
 import re
+
 import responses
-import pytest
-import act
-from act.api.re import UUID_MATCH, UUID
 from act_test import get_mock_data
+
+import act
+from act.api.re import UUID_MATCH
 
 
 # pylint: disable=no-member

@@ -383,13 +383,13 @@ create_mock(
 
 # Create origin
 create_mock(args.act_baseurl,
-    args.user_id,
-    "POST",
-    "v1/origin",
-    json={
-        "name": "my-origin",
-        "description": "My origin",
-        "trust": 0.8
-    },
-    filename="post_v1_origin_myorigin_201.json",
-    )
+            args.user_id,
+            "POST",
+            "v1/origin",
+            json={
+                "name": "my-origin",
+                "description": "My origin",
+                "trust": 0.8
+            },
+            filename="post_v1_origin_myorigin_201.json",
+            )
