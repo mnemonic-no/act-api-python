@@ -16,6 +16,13 @@ class ObjectType(ActBase):
         Field("namespace", deserializer=NameSpace),
     ]
 
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.name,
+            self.namespace
+        ))
+
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
         super(ObjectType, self).__init__(*args, **kwargs)
@@ -32,12 +39,6 @@ class ObjectType(ActBase):
 
         return self
 
-    def __hash__(self):
-        return hash((
-            self.name,
-            self.namespace
-        ))
-
 
 class ObjectStatistics(ActBase):
     """ObjectStatistics - serialized object specifying statistics"""
@@ -48,6 +49,15 @@ class ObjectStatistics(ActBase):
         Field("last_seen_timestamp", serializer=False),
         Field("last_added_timestamp", serializer=False),
     ]
+
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.type,
+            self.count.
+            self.last_seen_timestamp,
+            self.last_added_timestamp
+        ))
 
 
 class Object(ActBase):
@@ -68,6 +78,14 @@ class Object(ActBase):
         Field("object_type", deserialize_target="type", serializer=False),
         Field("object_value", deserialize_target="value", serializer=False),
     ]
+
+    def __hash__(self):
+        return hash((
+            self.__class__.__name__,
+            self.type,
+            self.value
+        ))
+
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -90,18 +108,6 @@ class Object(ActBase):
 
         # Add authentication information to all facts
         return result_set("configure", self.config)
-
-    def __eq__(self, other):
-        """ Check equality with another object """
-
-        # If other is None, return True if id, type and value is None
-        if other is None:
-            if self.id is None and self.type.name is None and self.value is None:
-                return True
-            return False
-
-        # Otherwise, use equality check from super class
-        return super(Object, self).__eq__(other)
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -143,12 +149,6 @@ class Object(ActBase):
             return True
 
         return False
-
-    def __hash__(self):
-        return hash((
-            self.type,
-            self.value
-        ))
 
     def __str__(self):
         """

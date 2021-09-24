@@ -14,7 +14,7 @@ import act.api
 
 from . import DEFAULT_VALIDATOR
 from .base import ActBase, Config, Origin
-from .fact import Fact, FactType, RelevantFactBindings, RelevantObjectBindings
+from .fact import Fact, MetaFact, FactType, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
 from .schema import schema_doc
 
@@ -28,7 +28,10 @@ def as_list(value):
 
 
 @functools.lru_cache(maxsize=4096)
-def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[TextIO] = None) -> None:
+def handle_fact(
+        fact: Fact,
+        output_format="json",
+        output_filehandle: Optional[TextIO] = None) -> Fact:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
@@ -59,6 +62,8 @@ def handle_fact(fact: Fact, output_format="json", output_filehandle: Optional[Te
             output_filehandle.write('{}\n'.format(str(fact_copy)))
         else:
             raise act.api.base.ArgumentError("Illegal output_format: {}".format(output_format))
+
+    return fact_copy
 
 
 class Act(ActBase):
@@ -211,6 +216,16 @@ object and authentication information is passed from the
 act object."""
 
         f = Fact(*args, **kwargs).configure(self.config)
+        f.set_defaults()
+
+        return f
+
+    @schema_doc(Fact.SCHEMA)
+    def meta_fact(self, *args, **kwargs):
+        """Manage meta facts. All arguments are passed to create a MetaFact
+object and authentication information is passed from the act object."""
+
+        f = MetaFact(*args, **kwargs).configure(self.config)
         f.set_defaults()
 
         return f
