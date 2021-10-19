@@ -482,7 +482,7 @@ def handle_uri(
         actapi: Act,
         uri: str,
         output_format="json",
-        output_filehandle: Optional[TextIO] = None) -> None:
+        output_filehandle: Optional[TextIO] = None) -> List[Fact]:
     """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
 
 Raises act.api.base.ValidationError if uri does not have scheme and address component.
@@ -497,8 +497,16 @@ validation as it will most likely fail later when uploading the fact to the plat
     if not output_filehandle:
         output_filehandle = sys.stdout
 
+    facts = []
+
     for fact in uri_facts(actapi, uri):
-        handle_fact(fact, output_format=output_format, output_filehandle=output_filehandle)
+        facts.append(
+            handle_fact(
+                fact,
+                output_format=output_format,
+                output_filehandle=output_filehandle))
+
+    return facts
 
 
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
