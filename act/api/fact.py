@@ -394,10 +394,12 @@ Returns retracted fact.
 
         fact = self.api_post(url, **params)["data"]
 
-        self.data = {}
-        self.deserialize(**fact)
+        meta = MetaFact(**fact)
+        # Add config to meta fact (user/auth)
+        meta.configure(self.config)
+        meta.set_defaults()
 
-        return self
+        return meta
 
     def __str__(self):
         """
