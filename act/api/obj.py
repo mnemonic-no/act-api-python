@@ -17,11 +17,7 @@ class ObjectType(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.name,
-            self.namespace
-        ))
+        return hash((self.__class__.__name__, self.name, self.namespace))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -51,28 +47,28 @@ class ObjectStatistics(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.type,
-            self.count.
-            self.last_seen_timestamp,
-            self.last_added_timestamp
-        ))
+        return hash(
+            (
+                self.__class__.__name__,
+                self.type,
+                self.count.self.last_seen_timestamp,
+                self.last_added_timestamp,
+            )
+        )
 
 
 class Object(ActBase):
     """Manage objects"""
+
     SCHEMA = [
         Field(
             "type",
             deserializer=ObjectType,
-            serializer=lambda object_type: object_type.name),
+            serializer=lambda object_type: object_type.name,
+        ),
         Field("value"),
         Field("id"),
-        Field(
-            "statistics",
-            deserializer=ObjectStatistics,
-            serializer=False),
+        Field("statistics", deserializer=ObjectStatistics, serializer=False),
         Field("object", flatten=True),
         Field("direction"),
         Field("object_type", deserialize_target="type", serializer=False),
@@ -80,11 +76,7 @@ class Object(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.type,
-            self.value
-        ))
+        return hash((self.__class__.__name__, self.type, self.value))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -99,7 +91,8 @@ class Object(ActBase):
             url = "v1/object/{}/{}/facts".format(self.type.name, self.value)
         else:
             raise MissingField(
-                "Must have either object ID or object type/value to get facts")
+                "Must have either object ID or object type/value to get facts"
+            )
 
         response = self.api_post(url)
 
@@ -124,7 +117,8 @@ class Object(ActBase):
             url = "v1/object/{}/{}/traverse".format(self.type.name, self.value)
         else:
             raise MissingField(
-                "Must have either object ID or object type/value to get facts")
+                "Must have either object ID or object type/value to get facts"
+            )
 
         result = []
         for element in self.api_post(url, query=query)["data"]:
@@ -143,7 +137,7 @@ class Object(ActBase):
         return result
 
     def __bool__(self):
-        """ Return False unless we either have an id or both type and value """
+        """Return False unless we either have an id or both type and value"""
         if self.id or (self.type and self.value):
             return True
 
