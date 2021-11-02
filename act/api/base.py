@@ -34,22 +34,23 @@ ERROR_HANDLER = {
     # Mapping of message templates provided in 412 errors from backend to
     # Exceptions that will be raised
     "object.not.valid": lambda msg: ValidationError(
-        "{message} ({field}={parameter})".format(**msg)),
+        "{message} ({field}={parameter})".format(**msg)
+    ),
     "organization.not.exist": lambda msg: ValidationError(
-        "{message} ({field}={parameter})".format(**msg))
+        "{message} ({field}={parameter})".format(**msg)
+    ),
 }
 
 
 def request(method, user_id, url, requests_common_kwargs=None, **kwargs):
     """Perform requests towards API
 
-Args:
-    method (str):         POST|GET
-    user_id (int):        Act user ID
-    url (str):            Absolute URL for the endpoint
-    **kwargs (keywords):  Additional options passed to requests json parameter
-                          the following fields:
-"""
+    Args:
+        method (str):         POST|GET
+        user_id (int):        Act user ID
+        url (str):            Absolute URL for the endpoint
+        **kwargs (keywords):  Additional options passed to requests json parameter
+                              the following fields:"""
 
     if not requests_common_kwargs:
         requests_common_kwargs = {}
@@ -68,11 +69,7 @@ Args:
         requests_kwargs["headers"]["ACT-User-ID"] = str(user_id)
 
     try:
-        res = requests.request(
-            method,
-            url,
-            **requests_kwargs
-        )
+        res = requests.request(method, url, **requests_kwargs)
     except requests.exceptions.ConnectionError as e:
         raise ResponseError("Connection error {}".format(e))
 
@@ -89,22 +86,22 @@ Args:
                 raise ERROR_HANDLER[msg_template](msg)
 
         # All other, unhandled errors - log to error() and raise generic exception
-        error("Request failed: {}, {}, {}".format(
-            url, kwargs, res.status_code))
+        error("Request failed: {}, {}, {}".format(url, kwargs, res.status_code))
         raise ResponseError(res.text)
 
     elif res.status_code not in (200, 201):
-        error("Request failed: {}, {}, {}".format(
-            url, kwargs, res.status_code))
+        error("Request failed: {}, {}, {}".format(url, kwargs, res.status_code))
         raise ResponseError(
-            "Unknown response error {}: {}".format(res.status_code, res.text))
+            "Unknown response error {}: {}".format(res.status_code, res.text)
+        )
 
     try:
         return res.json()
 
     except json.decoder.JSONDecodeError:
         raise ResponseError(
-            "Error decoding response {}: {}".format(res.status_code, res.text))
+            "Error decoding response {}: {}".format(res.status_code, res.text)
+        )
 
 
 class ActResultSet(object):
@@ -112,22 +109,19 @@ class ActResultSet(object):
 
     def __init__(self, response, deserializer):
         """Initialize result set
-Args:
-    response (str):       JSON response from Act. This should include
-                          the following fields:
-                            - count: the number of entries fetched
-                            - limit: the limit in the query
-                            - responseCode: responseCode from the API
-                            - size: the total number of entries in the platform
-                            - data (array): array of entries
+        Args:
+            response (str):       JSON response from Act. This should include
+                                  the following fields:
+                                    - count: the number of entries fetched
+                                    - limit: the limit in the query
+                                    - responseCode: responseCode from the API
+                                    - size: the total number of entries in the platform
+                                    - data (array): array of entries
 
-    deserializer (class): Deseralizer class
-"""
+            deserializer (class): Deseralizer class"""
 
         if not isinstance(response["data"], list):
-            raise ResponseError(
-                "Response should be list: {}".format(
-                    response["data"]))
+            raise ResponseError("Response should be list: {}".format(response["data"]))
 
         self.data = [deserializer(**d) for d in response["data"]]
 
@@ -144,8 +138,7 @@ Args:
     def __call__(self, func, *args, **kwargs):
         """Call function on each data entry"""
 
-        self.data = [getattr(item, func)(*args, **kwargs)
-                     for item in self.data]
+        self.data = [getattr(item, func)(*args, **kwargs) for item in self.data]
         return self
 
     def __len__(self):
@@ -161,7 +154,7 @@ Args:
         return "\n".join(["{}".format(item) for item in self.data])
 
     def __bool__(self):
-        """ Return True for non empty result sets """
+        """Return True for non empty result sets"""
         if self.size > 0:
             return True
 
@@ -181,19 +174,21 @@ Args:
 
 class Config(object):
     """Config object"""
+
     act_baseurl = None
     user_id = None
     requests_common_kwargs = {}
 
     def __init__(
-            self,
-            act_baseurl,
-            user_id,
-            requests_common_kwargs=None,
-            origin_name=None,
-            origin_id=None,
-            access_mode=DEFAULT_ACCESS_MODE,
-            organization=None):
+        self,
+        act_baseurl,
+        user_id,
+        requests_common_kwargs=None,
+        origin_name=None,
+        origin_id=None,
+        access_mode=DEFAULT_ACCESS_MODE,
+        organization=None,
+    ):
         """
         act_baseurl - url to ACT instance
         use_id - ACT user ID
@@ -242,7 +237,7 @@ class ActBase(Schema):
             self.config.user_id,
             "{}/{}".format(self.config.act_baseurl, uri),
             self.config.requests_common_kwargs,
-            **kwargs
+            **kwargs,
         )
 
         return response
@@ -259,19 +254,17 @@ class ActBase(Schema):
 
     def api_delete(self, uri, params=None):
         """Send DELETE request to API
-Args:
-    uri (str):     URI (relative to base url). E.g. "v1/factType"
-    params (Dict): Parameters that are URL enncoded and sent to the API
-"""
+        Args:
+            uri (str):     URI (relative to base url). E.g. "v1/factType"
+            params (Dict): Parameters that are URL enncoded and sent to the API"""
 
         return self.api_request("DELETE", uri, params=params)
 
     def api_get(self, uri, params=None):
         """Send GET request to API
-Args:
-    uri (str):     URI (relative to base url). E.g. "v1/factType"
-    params (Dict): Parameters that are URL enncoded and sent to the API
-"""
+        Args:
+            uri (str):     URI (relative to base url). E.g. "v1/factType"
+            params (Dict): Parameters that are URL enncoded and sent to the API"""
 
         return self.api_request("GET", uri, params=params)
 
@@ -281,8 +274,10 @@ Args:
         return hash(self) == hash(other)
 
     def __hash__(self):
-        " __hash__ should be implemented on all derived classes"
-        raise NotImplementedError(f"{self.__class__.__name__} is missing __hash__ method")
+        "__hash__ should be implemented on all derived classes"
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is missing __hash__ method"
+        )
 
 
 class NameSpace(ActBase):
@@ -294,10 +289,12 @@ class NameSpace(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.name,
-        ))
+        return hash(
+            (
+                self.__class__.__name__,
+                self.name,
+            )
+        )
 
 
 class Organization(ActBase):
@@ -309,10 +306,12 @@ class Organization(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.name,
-        ))
+        return hash(
+            (
+                self.__class__.__name__,
+                self.name,
+            )
+        )
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -343,12 +342,9 @@ class Origin(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.name,
-            self.namespace,
-            self.organization
-        ))
+        return hash(
+            (self.__class__.__name__, self.name, self.namespace, self.organization)
+        )
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -358,8 +354,7 @@ class Origin(ActBase):
         """Get Origin"""
 
         if not self.id:
-            raise MissingField(
-                "Must have fact ID to get origin")
+            raise MissingField("Must have fact ID to get origin")
 
         origin = self.api_get("v1/origin/uuid/{}".format(self.id))["data"]
         self.data = {}
@@ -384,8 +379,7 @@ class Origin(ActBase):
         """Delete Origin"""
 
         if not self.id:
-            raise MissingField(
-                "Must have fact ID to delete origin")
+            raise MissingField("Must have fact ID to delete origin")
 
         origin = self.api_delete("v1/origin/uuid/{}".format(self.id))["data"]
         self.data = {}
@@ -407,8 +401,10 @@ class Comment(ActBase):
     ]
 
     def __hash__(self):
-        return hash((
-            self.__class__.__name__,
-            self.comment,
-            self.timestamp,
-        ))
+        return hash(
+            (
+                self.__class__.__name__,
+                self.comment,
+                self.timestamp,
+            )
+        )

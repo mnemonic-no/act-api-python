@@ -33,26 +33,27 @@ class Field(object):
     """Schema fields"""
 
     def __init__(
-            self,
-            name,
-            default=None,
-            serializer=None,
-            deserializer=default_deserializer,
-            serialize_target=None,
-            deserialize_target=None,
-            flatten=False):
+        self,
+        name,
+        default=None,
+        serializer=None,
+        deserializer=default_deserializer,
+        serialize_target=None,
+        deserialize_target=None,
+        flatten=False,
+    ):
         """
-Args:
-    name (str):                Field name
-    default (str):             Default value for field if not specified
-    serializer (func|False):   Function used to serialize the field. Set to
-                               False if field should not be serialized.
-    deserializer (func|False): Function used to deserialize data. Set to
-                               False if field should not be deserialized.
-    serialize_target (str):    Move data to this key(name) when erializing
-    deserialize_target (str):  Move data to this key(name) when deserializing
-    flatten (bool):            Flatten data structure
-    """
+        Args:
+            name (str):                Field name
+            default (str):             Default value for field if not specified
+            serializer (func|False):   Function used to serialize the field. Set to
+                                       False if field should not be serialized.
+            deserializer (func|False): Function used to deserialize data. Set to
+                                       False if field should not be deserialized.
+            serialize_target (str):    Move data to this key(name) when erializing
+            deserialize_target (str):  Move data to this key(name) when deserializing
+            flatten (bool):            Flatten data structure
+        """
         self.name = name
         self.default = default
         self.serializer = serializer
@@ -73,7 +74,9 @@ Args:
             if self.deserializer == default_deserializer:
                 raise ValidationError(
                     "dict is not supported by default serializer. field={}, value={}".format(
-                        self.name, value))
+                        self.name, value
+                    )
+                )
 
             return self.deserializer(**value)
 
@@ -95,17 +98,21 @@ Args:
 
 def schema_doc(schema):
     """Dynamic create doctstring from schema fields"""
+
     def dec(obj):
         docstring = obj.__doc__ or ""
         dynamic = """
 
 The following arguments can be specified by position or keyword.
     {}
-""".format(str("\n    ".join([field.name for field in schema])))
+""".format(
+            str("\n    ".join([field.name for field in schema]))
+        )
 
         obj.__doc__ = docstring + dynamic
 
         return obj
+
     return dec
 
 
@@ -126,9 +133,8 @@ class Schema(object):
 
     def json(self, exclude_none=True, to_camel_case=True):
         return json.dumps(
-            self.serialize(
-                exclude_none=exclude_none,
-                to_camel_case=to_camel_case))
+            self.serialize(exclude_none=exclude_none, to_camel_case=to_camel_case)
+        )
 
     def serialize(self, exclude_none=True, to_camel_case=True):
         entries = {}
@@ -207,17 +213,20 @@ class Schema(object):
 
         if not hasattr(self, "SCHEMA"):
             raise ValidationError(
-                "No SCHEMA defined in class {}".format(self.__class__))
+                "No SCHEMA defined in class {}".format(self.__class__)
+            )
 
         for field in self.SCHEMA:
             # Loop through all fields and set default value, unless any of
             # - field is deseriazlied with another key
             # - field is flattened
             # - deserializer is disabled
-            if field.name not in self.data \
-                    and not field.deserialize_target \
-                    and not field.flatten \
-                    and field.deserializer is not False:
+            if (
+                field.name not in self.data
+                and not field.deserialize_target
+                and not field.flatten
+                and field.deserializer is not False
+            ):
                 self.data[field.name] = copy.copy(field.default)
 
     def __getitem__(self, key):
@@ -232,8 +241,8 @@ class Schema(object):
 
         raise AttributeError(
             # pylint: disable=too-many-format-args
-            "{} object has no attribute {}".format(
-                self.__class__, attr))
+            "{} object has no attribute {}".format(self.__class__, attr)
+        )
 
     def __setattr__(self, attr, value):
         """
@@ -284,6 +293,6 @@ class Schema(object):
             if field.serializer:
                 value = field.serializer(value)
 
-            args.append('{}={!r}'.format(field.name, value))
+            args.append("{}={!r}".format(field.name, value))
 
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
