@@ -128,17 +128,15 @@ class Object(ActBase):
 
         result = []
         for element in self.api_post(url, query=query)["data"]:
+            if "inReferenceTo" in element:
+                result.append(act.api.fact.MetaFact(**element).configure(self.config))
             if any(["sourceObject" in element, "destinationObject" in element]):
-                result.append(act.api.fact.Fact(**element))
+                result.append(act.api.fact.Fact(**element).configure(self.config))
             elif "statistics" in element:
-                result.append(act.api.fact.Object(**element))
+                result.append(act.api.fact.Object(**element).configure(self.config))
             else:
                 warning("Unable to guess element type: {}".format(element))
                 result.append(element)
-
-        # This returns the list as is and it is currently not deserialized
-        # since it can return multiplel types. An improvement would be to
-        # autodetect the types and deserialize accordingly
 
         return result
 
