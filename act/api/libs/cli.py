@@ -156,7 +156,7 @@ def init_act(args: argparse.Namespace) -> act.api.Act:
         # Provide defaults for optional arguments
         "origin_name": getattr(args, "origin_name", None),
         "origin_id": getattr(args, "origin_id", None),
-        "access_mode": getattr(args, "acccess_mode", act.api.DEFAULT_ACCESS_MODE),
+        "access_mode": getattr(args, "access_mode", act.api.DEFAULT_ACCESS_MODE),
         "organization": getattr(args, "organization", None),
     }
 
