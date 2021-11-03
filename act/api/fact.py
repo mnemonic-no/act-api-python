@@ -586,7 +586,7 @@ class Fact(AbstractFact):
             raise MissingField("Must have fact ID to get comments")
 
         res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
-        return act.api.base.ActResultSet(res, Fact)
+        return act.api.base.ActResultSet(res, MetaFact)
 
 
 class MetaFact(AbstractFact):
