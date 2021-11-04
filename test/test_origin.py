@@ -1,9 +1,10 @@
 import re
+
 import responses
-import pytest
-import act
-from act.api.re import UUID_MATCH, UUID
 from act_test import get_mock_data
+
+import act
+from act.api.re import UUID_MATCH
 
 
 # pylint: disable=no-member
@@ -11,10 +12,8 @@ from act_test import get_mock_data
 def test_get_origins():
     mock = get_mock_data("data/get_v1_origin_200.json")
     responses.add(
-        responses.GET,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.GET, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     c = act.api.Act("http://localhost:8888", 1)
 
@@ -24,8 +23,7 @@ def test_get_origins():
     assert "my-origin" in [origin.name for origin in origins]
 
     # All origins should have a valid uuid
-    assert all([re.search(UUID_MATCH, origin.id)
-                for origin in origins])
+    assert all([re.search(UUID_MATCH, origin.id) for origin in origins])
 
 
 @responses.activate
@@ -35,14 +33,16 @@ def test_create_origin():
         responses.POST,
         mock_add["url"],
         json=mock_add["json"],
-        status=mock_add["status_code"])
+        status=mock_add["status_code"],
+    )
 
     mock_get = get_mock_data("data/get_v1_origin_200.json")
     responses.add(
         responses.GET,
         mock_get["url"],
         json=mock_get["json"],
-        status=mock_get["status_code"])
+        status=mock_get["status_code"],
+    )
 
     c = act.api.Act("http://localhost:8888", 1)
 

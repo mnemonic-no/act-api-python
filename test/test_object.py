@@ -1,9 +1,11 @@
 import re
-import responses
+
 import pytest
-import act
-from act.api.re import UUID_MATCH, UUID
+import responses
 from act_test import get_mock_data
+
+import act
+from act.api.re import UUID, UUID_MATCH
 
 
 # pylint: disable=no-member
@@ -11,10 +13,8 @@ from act_test import get_mock_data
 def test_get_object_types():
     mock = get_mock_data("data/get_v1_objectType_200.json")
     responses.add(
-        responses.GET,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.GET, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     c = act.api.Act("http://localhost:8080", 1)
     object_types = c.get_object_types()
@@ -23,22 +23,18 @@ def test_get_object_types():
     assert "ipv4" in [object_t.name for object_t in object_types]
 
     # All object types should have a valid uuid
-    assert all([re.search(UUID_MATCH, object_t.id)
-                for object_t in object_types])
+    assert all([re.search(UUID_MATCH, object_t.id) for object_t in object_types])
+
 
 @responses.activate
 def test_create_object_type():
     mock = get_mock_data("data/post_v1_objectType_threatActor_201.json")
     responses.add(
-        responses.POST,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.POST, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     c = act.api.Act("http://localhost:8080", 1)
-    object_type = c.object_type(
-        name="threatActor",
-        validator=".+").add()
+    object_type = c.object_type(name="threatActor", validator=".+").add()
 
     assert object_type.name == "threatActor"
     assert re.search(UUID_MATCH, object_type.id)
@@ -48,10 +44,8 @@ def test_create_object_type():
 def test_get_object_by_uuid():
     mock = get_mock_data("data/post_v1_object_uuid_facts_200.json")
     responses.add(
-        responses.POST,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.POST, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     uuid = re.search(UUID, mock["url"]).group("uuid")
 
@@ -68,10 +62,8 @@ def test_get_object_by_uuid():
 def test_get_object_by_type_value():
     mock = get_mock_data("data/post_v1_object_facts_200.json")
     responses.add(
-        responses.POST,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.POST, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     c = act.api.Act("http://localhost:8080", 1)
 
@@ -96,17 +88,12 @@ def test_get_object_by_type_value():
 def test_object_search():
     mock = get_mock_data("data/post_v1_object_search_200.json")
     responses.add(
-        responses.POST,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.POST, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     c = act.api.Act("http://localhost:8080", 1)
 
-    objects = c.object_search(
-        fact_type=["seenIn"],
-        fact_value=["report"],
-        limit=1)
+    objects = c.object_search(fact_type=["seenIn"], fact_value=["report"], limit=1)
 
     assert not objects.complete
     assert objects.size == 1
@@ -134,10 +121,8 @@ def test_object_search():
 def test_get_object_search():
     mock = get_mock_data("data/post_v1_object_traverse_200.json")
     responses.add(
-        responses.POST,
-        mock["url"],
-        json=mock["json"],
-        status=mock["status_code"])
+        responses.POST, mock["url"], json=mock["json"], status=mock["status_code"]
+    )
 
     c = act.api.Act("http://localhost:8080", 1)
 
@@ -148,3 +133,22 @@ def test_get_object_search():
     # Should contain both objects and facts
     assert any([isinstance(elem, act.api.obj.Object) for elem in path])
     assert any([isinstance(elem, act.api.fact.Fact) for elem in path])
+
+
+def test_equality():
+    c = act.api.Act("http://localhost:8080", 1)
+
+    obj1 = c.object(type="ipv4", value="127.0.0.1")
+    obj2 = c.object(
+        type="ipv4", id="12345678-1234-5678-1234-567812345678", value="127.0.0.1"
+    )
+    obj3 = c.object(type="ipv4", value="127.0.0.2")
+
+    assert obj1 == obj2
+    assert obj1 != obj3
+
+    assert act.api.obj.Object("fqdn") == act.api.obj.Object("fqdn")
+
+    # Should be equal even though one of the items has an id
+    assert act.api.obj.Object("fqdn") == act.api.obj.Object("fqdn", id="dummy")
+    assert act.api.obj.Object("fqdn") != act.api.obj.Object("ipv4")

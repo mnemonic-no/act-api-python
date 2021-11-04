@@ -3,7 +3,7 @@ from logging import info, warning
 import act.api
 
 from . import DEFAULT_VALIDATOR
-from .base import ActBase, NameSpace, ActResultSet, Organization
+from .base import ActBase, ActResultSet, NameSpace
 from .schema import Field, MissingField, schema_doc
 
 
@@ -15,6 +15,9 @@ class ObjectType(ActBase):
         Field("validator_parameter", default=DEFAULT_VALIDATOR),
         Field("namespace", deserializer=NameSpace),
     ]
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self.name, self.namespace))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -43,25 +46,37 @@ class ObjectStatistics(ActBase):
         Field("last_added_timestamp", serializer=False),
     ]
 
+    def __hash__(self):
+        return hash(
+            (
+                self.__class__.__name__,
+                self.type,
+                self.count.self.last_seen_timestamp,
+                self.last_added_timestamp,
+            )
+        )
+
 
 class Object(ActBase):
     """Manage objects"""
+
     SCHEMA = [
         Field(
             "type",
             deserializer=ObjectType,
-            serializer=lambda object_type: object_type.name),
+            serializer=lambda object_type: object_type.name,
+        ),
         Field("value"),
         Field("id"),
-        Field(
-            "statistics",
-            deserializer=ObjectStatistics,
-            serializer=False),
+        Field("statistics", deserializer=ObjectStatistics, serializer=False),
         Field("object", flatten=True),
         Field("direction"),
         Field("object_type", deserialize_target="type", serializer=False),
         Field("object_value", deserialize_target="value", serializer=False),
     ]
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self.type, self.value))
 
     @schema_doc(SCHEMA)
     def __init__(self, *args, **kwargs):
@@ -76,7 +91,8 @@ class Object(ActBase):
             url = "v1/object/{}/{}/facts".format(self.type.name, self.value)
         else:
             raise MissingField(
-                "Must have either object ID or object type/value to get facts")
+                "Must have either object ID or object type/value to get facts"
+            )
 
         response = self.api_post(url)
 
@@ -84,18 +100,6 @@ class Object(ActBase):
 
         # Add authentication information to all facts
         return result_set("configure", self.config)
-
-    def __eq__(self, other):
-        """ Check equality with another object """
-
-        # If other is None, return True if id, type and value is None
-        if other is None:
-            if self.id is None and self.type.name is None and self.value is None:
-                return True
-            return False
-
-        # Otherwise, use equality check from super class
-        return super(Object, self).__eq__(other)
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -113,26 +117,25 @@ class Object(ActBase):
             url = "v1/object/{}/{}/traverse".format(self.type.name, self.value)
         else:
             raise MissingField(
-                "Must have either object ID or object type/value to get facts")
+                "Must have either object ID or object type/value to get facts"
+            )
 
         result = []
         for element in self.api_post(url, query=query)["data"]:
+            if "inReferenceTo" in element:
+                result.append(act.api.fact.MetaFact(**element).configure(self.config))
             if any(["sourceObject" in element, "destinationObject" in element]):
-                result.append(act.api.fact.Fact(**element))
+                result.append(act.api.fact.Fact(**element).configure(self.config))
             elif "statistics" in element:
-                result.append(act.api.fact.Object(**element))
+                result.append(act.api.fact.Object(**element).configure(self.config))
             else:
                 warning("Unable to guess element type: {}".format(element))
                 result.append(element)
 
-        # This returns the list as is and it is currently not deserialized
-        # since it can return multiplel types. An improvement would be to
-        # autodetect the types and deserialize accordingly
-
         return result
 
     def __bool__(self):
-        """ Return False unless we either have an id or both type and value """
+        """Return False unless we either have an id or both type and value"""
         if self.id or (self.type and self.value):
             return True
 
