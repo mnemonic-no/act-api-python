@@ -38,8 +38,8 @@ class RelevantObjectBindings(ActBase):
         return hash(
             (
                 self.__class__.__name__,
-                self.source,
-                self.destination,
+                self.source_object_type,
+                self.destination_object_type,
                 self.bidirectional_binding,
             )
         )
