@@ -2,7 +2,7 @@ from logging import info, warning
 
 import act.api
 
-from . import DEFAULT_VALIDATOR
+from . import DEFAULT_OBJECT_VALIDATOR
 from .base import ActBase, ActResultSet, NameSpace
 from .schema import Field, MissingField, schema_doc
 
@@ -12,7 +12,7 @@ class ObjectType(ActBase):
         Field("name"),
         Field("id"),
         Field("validator", default="RegexValidator"),
-        Field("validator_parameter", default=DEFAULT_VALIDATOR),
+        Field("validator_parameter", default=DEFAULT_OBJECT_VALIDATOR),
         Field("namespace", deserializer=NameSpace),
     ]
 

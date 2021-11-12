@@ -10,7 +10,7 @@ from typing import List, Optional, Text, TextIO, Tuple
 
 import act.api
 
-from . import DEFAULT_VALIDATOR
+from . import DEFAULT_METAFACT_VALIDATOR, DEFAULT_FACT_VALIDATOR
 from .base import ActBase, Config, Origin
 from .fact import Fact, FactType, MetaFact, RelevantFactBindings, RelevantObjectBindings
 from .obj import Object, ObjectType
@@ -293,7 +293,7 @@ class Act(ActBase):
     def create_fact_type(
         self,
         name,
-        validator=DEFAULT_VALIDATOR,
+        validator=DEFAULT_FACT_VALIDATOR,
         object_bindings=None,
         default_confidence=1.0,
     ):
@@ -305,7 +305,7 @@ Args:
     default_confidence (float):  Default confidence for fact type
 
 Returns created fact type, or exisiting fact type if it already exists.
-""" % DEFAULT_VALIDATOR
+""" % DEFAULT_FACT_VALIDATOR
 
         if not object_bindings:
             object_bindings = []
@@ -379,7 +379,7 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
     def create_fact_type_all_bindings(
-        self, name, validator_parameter=DEFAULT_VALIDATOR, default_confidence=1.0
+        self, name, validator_parameter=DEFAULT_FACT_VALIDATOR, default_confidence=1.0
     ):
         """Create a fact type that can be connected to all object types"""
 
@@ -417,7 +417,7 @@ Returns created fact type, or exisiting fact type if it already exists.
 
         return fact_type
 
-    def create_meta_fact_type(self, name, fact_bindings, validator=DEFAULT_VALIDATOR):
+    def create_meta_fact_type(self, name, fact_bindings, validator=DEFAULT_METAFACT_VALIDATOR):
         """Create meta fact type with given fact bindings
 Args:
     name (str):                  Fact type name
@@ -425,7 +425,7 @@ Args:
     fact_bindings ([]):          List of fact bindings (name)
 
 Returns created fact type, or exisiting fact type if it already exists.
-""" % DEFAULT_VALIDATOR
+""" % DEFAULT_METAFACT_VALIDATOR
 
         existing_fact_types = {
             fact_type.name: fact_type for fact_type in self.get_fact_types()
@@ -460,7 +460,7 @@ Returns created fact type, or exisiting fact type if it already exists.
         return fact_type
 
     def create_meta_fact_type_all_bindings(
-        self, name, validator_parameter=DEFAULT_VALIDATOR
+        self, name, validator_parameter=DEFAULT_METAFACT_VALIDATOR
     ):
         """Create a meta fact type that can be connected to all (non-meta) fact types
 Args:
@@ -468,7 +468,7 @@ Args:
     validator (str):             Regular expression valdiator. Default = %s
 
 Returns created fact type, or exisiting fact type if it already exists.
-""" % DEFAULT_VALIDATOR
+""" % DEFAULT_METAFACT_VALIDATOR
 
         # Get all existing fact types
         existing_fact_types = {

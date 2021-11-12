@@ -8,7 +8,7 @@ from logging import error, info, warning
 import act.api
 from act.api.re import UUID_MATCH
 
-from . import DEFAULT_VALIDATOR
+from . import DEFAULT_FACT_VALIDATOR
 from .base import ActBase, Comment, NameSpace, Organization, Origin, origin_serializer
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
@@ -80,7 +80,7 @@ class FactType(ActBase):
         Field("id"),
         Field("default_confidence"),
         Field("validator", default="RegexValidator"),
-        Field("validator_parameter", default=DEFAULT_VALIDATOR),
+        Field("validator_parameter", default=DEFAULT_FACT_VALIDATOR),
         Field("relevant_object_bindings", deserializer=RelevantObjectBindings),
         Field("relevant_fact_bindings", deserializer=RelevantFactBindings),
         Field("namespace", deserializer=NameSpace),
