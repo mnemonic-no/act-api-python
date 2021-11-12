@@ -9,7 +9,9 @@ FACT_IS_DESTINATION = "FactIsDestination"
 ACCESS_MODES = ["Public", "RoleBased", "Explicit"]
 DEFAULT_ACCESS_MODE = "RoleBased"
 BIDIRECTIONAL_FACT = "BiDirectional"
-DEFAULT_VALIDATOR = r"(.|\n)*"
+DEFAULT_OBJECT_VALIDATOR = r"(.|\n)*"
+DEFAULT_FACT_VALIDATOR = None
+DEFAULT_METAFACT_VALIDATOR = r"(.|\n)*"
 ACT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
 from act.api import utils

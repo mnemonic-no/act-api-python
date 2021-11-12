@@ -33,6 +33,9 @@ class ValidationError(Exception):
 ERROR_HANDLER = {
     # Mapping of message templates provided in 412 errors from backend to
     # Exceptions that will be raised
+    "fact.not.valid": lambda msg: ValidationError(
+        "{message} ({field}={parameter})".format(**msg)
+    ),
     "object.not.valid": lambda msg: ValidationError(
         "{message} ({field}={parameter})".format(**msg)
     ),
