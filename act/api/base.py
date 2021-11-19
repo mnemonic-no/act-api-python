@@ -5,6 +5,8 @@ from logging import error, info
 
 import requests
 
+import types
+
 from . import DEFAULT_ACCESS_MODE
 from .re import UUID_MATCH
 from .schema import Field, MissingField, Schema, schema_doc
@@ -110,7 +112,7 @@ def request(method, user_id, url, requests_common_kwargs=None, **kwargs):
 class ActResultSet(object):
     """Represents a list of Act entries"""
 
-    def __init__(self, response, deserializer):
+    def __init__(self, response, deserializer, config = None):
         """Initialize result set
         Args:
             response (str):       JSON response from Act. This should include
@@ -126,7 +128,13 @@ class ActResultSet(object):
         if not isinstance(response["data"], list):
             raise ResponseError("Response should be list: {}".format(response["data"]))
 
-        self.data = [deserializer(**d) for d in response["data"]]
+
+        if isinstance(deserializer, types.FunctionType):
+            # Parameter is a function, send element as dictionary
+            self.data = [deserializer(d).configure(config) for d in response["data"]]
+        else:
+            # Parameter is a class, send items as parameters
+            self.data = [deserializer(**d).configure(config) for d in response["data"]]
 
         self.size = response["size"]
         self.count = response["count"]

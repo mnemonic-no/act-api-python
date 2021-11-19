@@ -4,17 +4,24 @@ import json
 import re
 import time
 from logging import error, info, warning
+from typing import Dict, Union
 
 import act.api
 from act.api.re import UUID_MATCH
 
 from . import DEFAULT_FACT_VALIDATOR
-from .base import ActBase, Comment, NameSpace, Organization, Origin, origin_serializer
+from .base import (ActBase, Comment, NameSpace, Organization, Origin,
+                   origin_serializer)
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
 
 
 class IllegalFactChain(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
+class UnknownType(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
 
@@ -586,7 +593,7 @@ class Fact(AbstractFact):
             raise MissingField("Must have fact ID to get comments")
 
         res = self.api_get("v1/fact/uuid/{}/meta".format(self.id), params=params)
-        return act.api.base.ActResultSet(res, MetaFact)
+        return act.api.base.ActResultSet(res, MetaFact, config=self.config)
 
 
 class MetaFact(AbstractFact):
@@ -645,6 +652,16 @@ class MetaFact(AbstractFact):
         )
 
         return self
+
+
+def auto_fact_type(element: Dict) -> Union[MetaFact, Fact]:
+    """Guess type based on keys in dictionary and return Object"""
+    if "inReferenceTo" in element:
+        return MetaFact(**element)
+    elif any(["sourceObject" in element, "destinationObject" in element]):
+        return Fact(**element)
+    else:
+        raise UnknownType("Unable to guess element type: {}".format(element))
 
 
 def fact_chain_seed(*facts):

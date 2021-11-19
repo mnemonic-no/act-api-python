@@ -10,9 +10,10 @@ from typing import List, Optional, Text, TextIO, Tuple
 
 import act.api
 
-from . import DEFAULT_METAFACT_VALIDATOR, DEFAULT_FACT_VALIDATOR
+from . import DEFAULT_FACT_VALIDATOR, DEFAULT_METAFACT_VALIDATOR
 from .base import ActBase, Config, Origin
-from .fact import Fact, FactType, MetaFact, RelevantFactBindings, RelevantObjectBindings
+from .fact import (Fact, FactType, MetaFact, RelevantFactBindings,
+                   RelevantObjectBindings, auto_fact_type)
 from .obj import Object, ObjectType
 from .schema import schema_doc
 
@@ -156,7 +157,7 @@ class Act(ActBase):
 
         res = self.api_post("v1/fact/search", **params)
 
-        return act.api.base.ActResultSet(res, self.fact)
+        return act.api.base.ActResultSet(res, auto_fact_type, config=self.config)
 
     # pylint: disable=unused-argument,dangerous-default-value
     def object_search(
@@ -214,7 +215,7 @@ class Act(ActBase):
 
         res = self.api_post("v1/object/search", **params)
 
-        return act.api.base.ActResultSet(res, self.object)
+        return act.api.base.ActResultSet(res, self.object, config=self.confg)
 
     @schema_doc(Fact.SCHEMA)
     def fact(self, *args, **kwargs):
@@ -417,7 +418,9 @@ Returns created fact type, or exisiting fact type if it already exists.
 
         return fact_type
 
-    def create_meta_fact_type(self, name, fact_bindings, validator=DEFAULT_METAFACT_VALIDATOR):
+    def create_meta_fact_type(
+        self, name, fact_bindings, validator=DEFAULT_METAFACT_VALIDATOR
+    ):
         """Create meta fact type with given fact bindings
 Args:
     name (str):                  Fact type name
