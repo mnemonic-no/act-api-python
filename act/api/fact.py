@@ -4,7 +4,7 @@ import json
 import re
 import time
 from logging import error, info, warning
-from typing import Dict, Union
+from typing import Union, Any
 
 import act.api
 from act.api.re import UUID_MATCH
@@ -654,14 +654,14 @@ class MetaFact(AbstractFact):
         return self
 
 
-def auto_fact_type(element: Dict) -> Union[MetaFact, Fact]:
+def auto_fact_type(**kwargs: Any) -> Union[MetaFact, Fact]:
     """Guess type based on keys in dictionary and return Object"""
-    if "inReferenceTo" in element:
-        return MetaFact(**element)
-    elif any(["sourceObject" in element, "destinationObject" in element]):
-        return Fact(**element)
+    if kwargs.get("inReferenceTo"):
+        return MetaFact(**kwargs)
+    elif any(["sourceObject" in kwargs, "destinationObject" in kwargs]):
+        return Fact(**kwargs)
     else:
-        raise UnknownType("Unable to guess element type: {}".format(element))
+        raise UnknownType("Unable to guess element type: {}".format(kwargs))
 
 
 def fact_chain_seed(*facts):
