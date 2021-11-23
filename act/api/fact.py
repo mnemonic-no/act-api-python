@@ -658,7 +658,7 @@ def auto_fact_type(**kwargs: Any) -> Union[MetaFact, Fact]:
     """Guess type based on keys in dictionary and return Object"""
     if kwargs.get("inReferenceTo"):
         return MetaFact(**kwargs)
-    elif any(["sourceObject" in kwargs, "destinationObject" in kwargs]):
+    elif any([kwargs.get("sourceObject"), kwargs.get("destinationObject")]):
         return Fact(**kwargs)
     else:
         raise UnknownType("Unable to guess element type: {}".format(kwargs))
