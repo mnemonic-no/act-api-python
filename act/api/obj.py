@@ -96,7 +96,7 @@ class Object(ActBase):
 
         response = self.api_post(url)
 
-        result_set = ActResultSet(response, act.api.fact.Fact)
+        result_set = ActResultSet(response, act.api.fact.Fact, config=self.config)
 
         # Add authentication information to all facts
         return result_set("configure", self.config)
@@ -124,7 +124,7 @@ class Object(ActBase):
         for element in self.api_post(url, query=query)["data"]:
             if "inReferenceTo" in element:
                 result.append(act.api.fact.MetaFact(**element).configure(self.config))
-            if any(["sourceObject" in element, "destinationObject" in element]):
+            elif any(["sourceObject" in element, "destinationObject" in element]):
                 result.append(act.api.fact.Fact(**element).configure(self.config))
             elif "statistics" in element:
                 result.append(act.api.fact.Object(**element).configure(self.config))
