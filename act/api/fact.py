@@ -97,7 +97,6 @@ class FactType(ActBase):
     def __init__(self, *args, **kwargs):
         super(FactType, self).__init__(*args, **kwargs)
 
-
     def add(self):
         params = self.serialize()
 
