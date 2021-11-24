@@ -97,6 +97,7 @@ class FactType(ActBase):
     def __init__(self, *args, **kwargs):
         super(FactType, self).__init__(*args, **kwargs)
 
+
     def add(self):
         params = self.serialize()
 
@@ -255,7 +256,7 @@ class AbstractFact(ActBase):
         Field(
             "type", deserializer=FactType, serializer=lambda fact_type: fact_type.name
         ),
-        Field("value", default=""),
+        Field("value", default=None),
         Field("id", serializer=False),
         Field("flags", serializer=False),
         Field("origin", deserializer=Origin),
@@ -534,6 +535,12 @@ class Fact(AbstractFact):
         params["sourceObject"] = object_serializer(self.source_object)
         params["destinationObject"] = object_serializer(self.destination_object)
         params["origin"] = origin_serializer(self.origin)
+
+        # Remove "value" parameters if it is empty string or None
+        # This is for backward compatibilty for for output produced on act-api <=v2.0.3 where 
+        # default value is empty string
+        if "value" in params and not params["value"]:
+            del params["value"]
 
         fact = self.api_post("v1/fact", **params)["data"]
 
