@@ -252,7 +252,15 @@ class Act(ActBase):
         object and authentication information is passed from the
         act object."""
 
-        return FactType(*args, **kwargs).configure(self.config)
+        fact_type = FactType(*args, **kwargs).configure(self.config)
+
+        if not fact_type.validator_parameter:
+            fact_type.validator = "NullValidator"
+
+            # Set to explitcit None (validator_parameter can also be empty string)
+            fact_type.validator_parameter = None
+
+        return fact_type
 
     @schema_doc(ObjectType.SCHEMA)
     def object_type(self, *args, **kwargs):

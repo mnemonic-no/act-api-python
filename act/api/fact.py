@@ -4,7 +4,7 @@ import json
 import re
 import time
 from logging import error, info, warning
-from typing import Union, Any
+from typing import Any, Union
 
 import act.api
 from act.api.re import UUID_MATCH
@@ -255,7 +255,7 @@ class AbstractFact(ActBase):
         Field(
             "type", deserializer=FactType, serializer=lambda fact_type: fact_type.name
         ),
-        Field("value", default=""),
+        Field("value", default=None),
         Field("id", serializer=False),
         Field("flags", serializer=False),
         Field("origin", deserializer=Origin),
@@ -534,6 +534,17 @@ class Fact(AbstractFact):
         params["sourceObject"] = object_serializer(self.source_object)
         params["destinationObject"] = object_serializer(self.destination_object)
         params["origin"] = origin_serializer(self.origin)
+
+        # Replace "" in value parameter with None
+        # This is for backward compatibilty for output produced on act-api <=v2.0.3
+        # Can be removed when we bump major version to 3.x.x
+        if params.get("value") == "":
+            warning(
+                "Replaced empty string in fact value with None. "
+                "This should be fixed in workers producing these facts, %s",
+                params,
+            )
+            params["value"] = None
 
         fact = self.api_post("v1/fact", **params)["data"]
 
