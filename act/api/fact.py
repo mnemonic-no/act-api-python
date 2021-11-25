@@ -536,7 +536,7 @@ class Fact(AbstractFact):
         params["origin"] = origin_serializer(self.origin)
 
         # Replace "" in value parameter with None
-        # This is for backward compatibilty for output produced on act-api <=v2.0.3 where
+        # This is for backward compatibilty for output produced on act-api <=v2.0.3
         # Can be removed when we bump major version to 3.x.x
         if params.get("value") == "":
             warning(
