@@ -4,7 +4,7 @@ import json
 import re
 import time
 from logging import error, info, warning
-from typing import Union, Any
+from typing import Any, Union
 
 import act.api
 from act.api.re import UUID_MATCH
@@ -535,11 +535,16 @@ class Fact(AbstractFact):
         params["destinationObject"] = object_serializer(self.destination_object)
         params["origin"] = origin_serializer(self.origin)
 
-        # Remove "value" parameters if it is empty string or None
-        # This is for backward compatibilty for for output produced on act-api <=v2.0.3 where 
-        # default value is empty string
-        if "value" in params and not params["value"]:
-            del params["value"]
+        # Replace "" in value parameter with None
+        # This is for backward compatibilty for output produced on act-api <=v2.0.3 where
+        # Can be removed when we bump major version to 3.x.x
+        if params.get("value") == "":
+            warning(
+                "Replaced empty string in fact value with None. "
+                "This should be fixed in workers producing these facts, %s",
+                params,
+            )
+            params["value"] = None
 
         fact = self.api_post("v1/fact", **params)["data"]
 
