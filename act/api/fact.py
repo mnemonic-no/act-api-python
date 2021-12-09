@@ -4,7 +4,7 @@ import json
 import re
 import time
 from logging import error, info, warning
-from typing import Any, Union
+from typing import Any, Union, Iterable
 
 import act.api
 from act.api.re import UUID_MATCH
@@ -174,6 +174,7 @@ class FactType(ActBase):
         return self.add_fact_bindings(
             [RelevantFactBindings(name=fact_type.name, id=fact_type.id)]
         )
+
 
     def add_fact_bindings(self, add_bindings):
         """Add multiple fact bindings
@@ -501,6 +502,46 @@ class Fact(AbstractFact):
 
         return self
 
+    def format_objects(self, object_formatter = None):
+        if not object_formatter:
+            if not self.config or not self.config.object_formatter:
+                raise act.api.base.ArgumentError("object_formatter must be specified as argument or in configuration")
+
+            object_formatter = self.config.object_formatter
+
+
+        if self.source_object:
+            self.source_object.value = object_formatter(
+                self.source_object.type.name, self.source_object.value
+            )
+        if self.destination_object:
+            self.destination_object.value = object_formatter(
+                self.destination_object.type.name,
+                self.destination_object.value,
+            )
+
+        return self
+
+    def validate(self, object_validator = None):
+        if not object_validator:
+            if not self.config or not self.config.object_validator:
+                raise act.api.base.ArgumentError("object_validator must be specified as argument or in configuration")
+
+            object_validator = self.config.object_validator
+
+        if self.source_object and not object_validator(
+                self.source_object.type.name, self.source_object.value
+            ):
+                raise ValidationError(f"Source object does not validate: {fact_copy.json()}")
+
+        if self.destination_object and not object_validator(
+                self.destination_object.type.name, self.destination_object.value
+            ):
+                raise ValidationError(f"Destination object does not validate: {fact_copy.json()}")
+
+        return True
+
+
     def bidirectional(
         self,
         source_object_type,
@@ -704,7 +745,7 @@ def fact_chain_seed(*facts):
     return "\n".join(sorted([str(fact) for fact in facts]))
 
 
-def fact_chain(*facts):
+def fact_chain(*facts: Fact) -> Iterable[Fact]:
     """
         Return fact chain of all facts.
         A fact chain is a modified version of the facts, where all placeholder
@@ -720,7 +761,7 @@ def fact_chain(*facts):
     # Calculate the hash for this chain, based on the seed
     sha256sum = hashlib.sha256(fact_chain_seed(*facts).encode("utf8")).hexdigest()
 
-    chain = copy.copy(facts)
+    chain: Iterable[Fact] = copy.copy(facts)
 
     # Return the fact chain, with all object values replaced "[placeholder[<HASH>]]"
     for fact in chain:

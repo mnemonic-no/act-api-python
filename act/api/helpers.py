@@ -6,7 +6,7 @@ import os
 import sys
 import urllib.parse
 from logging import error, warning
-from typing import List, Optional, Text, TextIO, Tuple
+from typing import Iterable, List, Optional, Text, TextIO, Tuple
 
 import act.api
 
@@ -27,6 +27,59 @@ def as_list(value):
     return value
 
 
+def handle_facts(
+    facts: Iterable[Fact],
+    output_format="json",
+    output_filehandle: Optional[TextIO] = None,
+) -> List[Fact]:
+    """
+
+    Handle a list of facts and format and validate all facts before
+    they are added to the a platform or printed to stdout
+
+    ValidationError will cause none of the facts to be handled
+
+    """
+
+    fact_copies: List[Fact] = []
+
+    if not output_filehandle:
+        output_filehandle = sys.stdout
+
+    for fact in facts:
+        fact_copy = copy.deepcopy(fact)
+
+        if isinstance(fact_copy, Fact):
+            fact_copy = fact_copy.format_objects()
+
+        try:
+            if isinstance(fact_copy, Fact):
+                fact_copy.validate()
+        except act.api.base.ValidationError as err:
+            if fact_copy.config and fact_copy.config.strict_validator:
+                error(err)
+                raise ValidationError(err)
+            warning(err)
+            continue
+
+        fact_copies.append(fact_copy)
+
+    for fact_copy in fact_copies:
+        if fact_copy.config.act_baseurl:  # type: ignore
+            fact_copy.add()
+        else:
+            if output_format == "json":
+                output_filehandle.write("{}\n".format(fact_copy.json()))
+            elif output_format == "str":
+                output_filehandle.write("{}\n".format(str(fact_copy)))
+            else:
+                raise act.api.base.ArgumentError(
+                    "Illegal output_format: {}".format(output_format)
+                )
+
+    return fact_copies
+
+
 @functools.lru_cache(maxsize=4096)
 def handle_fact(
     fact: Fact,
@@ -34,7 +87,6 @@ def handle_fact(
     output_filehandle: Optional[TextIO] = None,
 ) -> Optional[Fact]:
     """
-    add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
     occur within this cache will be ignored.
 
@@ -42,70 +94,15 @@ def handle_fact(
     it will write to the file handle specified
     """
 
-    # We do not set sys.stdout as default in the function signature
-    # because that breaks redirection in pytest
-    # https://github.com/pytest-dev/pytest/issues/2178
+    # Reuse logic from handle_facts (format, validate, add, etc)
+    facts = handle_facts([fact], output_format, output_filehandle)
 
-    # Take copy of fact, if not it will be updated when added to the platform
-    # and it will create problems when added to the cace with the lru_cache decorator
+    # If not fact is returned, the fact failed to validate
+    if not facts:
+        return None
 
-    fact_copy = copy.deepcopy(fact)
-
-    config = fact_copy.config
-    source_object = fact_copy.source_object
-    destination_object = fact_copy.destination_object
-
-    if not output_filehandle:
-        output_filehandle = sys.stdout
-
-    if config and config.object_formatter:
-        if source_object:
-            source_object.value = config.object_formatter(
-                source_object.type.name, source_object.value
-            )
-        if destination_object:
-            destination_object.value = config.object_formatter(
-                destination_object.type.name,
-                destination_object.value,
-            )
-
-    if config and config.object_validator:
-        if source_object:
-            if not config.object_validator(
-                source_object.type.name, source_object.value
-            ):
-                msg = f"Source object does not validate: {fact_copy.json()}"
-                if config.strict_validator:
-                    error(msg)
-                    raise ValidationError(msg)
-                warning(msg)
-                return None
-
-        if destination_object:
-            if not config.object_validator(
-                destination_object.type.name,
-                destination_object.value,
-            ):
-                msg = f"Destination object does not validate: {fact_copy.json()}"
-                if config.strict_validator:
-                    error(msg)
-                    raise ValidationError(msg)
-                warning(msg)
-                return None
-
-    if config.act_baseurl:  # type: ignore
-        fact_copy.add()
-    else:
-        if output_format == "json":
-            output_filehandle.write("{}\n".format(fact_copy.json()))
-        elif output_format == "str":
-            output_filehandle.write("{}\n".format(str(fact_copy)))
-        else:
-            raise act.api.base.ArgumentError(
-                "Illegal output_format: {}".format(output_format)
-            )
-
-    return fact_copy
+    # Return single fact
+    return facts[0]
 
 
 class Act(ActBase):
