@@ -532,12 +532,12 @@ class Fact(AbstractFact):
         if self.source_object and not object_validator(
                 self.source_object.type.name, self.source_object.value
             ):
-                raise ValidationError(f"Source object does not validate: {fact_copy.json()}")
+                raise act.api.base.ValidationError(f"Source object does not validate: {self.json()}")
 
         if self.destination_object and not object_validator(
                 self.destination_object.type.name, self.destination_object.value
             ):
-                raise ValidationError(f"Destination object does not validate: {fact_copy.json()}")
+                raise act.api.base.ValidationError(f"Destination object does not validate: {self.json()}")
 
         return True
 
