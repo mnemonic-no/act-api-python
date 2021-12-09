@@ -58,7 +58,7 @@ def handle_facts(
         except act.api.base.ValidationError as err:
             if fact_copy.config and fact_copy.config.strict_validator:
                 error(err)
-                raise ValidationError(err)
+                raise
             warning(err)
             continue
 
