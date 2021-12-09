@@ -5,13 +5,13 @@ import itertools
 import os
 import sys
 import urllib.parse
-from logging import warning
+from logging import error, warning
 from typing import List, Optional, Text, TextIO, Tuple
 
 import act.api
 
 from . import DEFAULT_FACT_VALIDATOR, DEFAULT_METAFACT_VALIDATOR
-from .base import ActBase, Config, Origin
+from .base import ActBase, Config, Origin, ValidationError
 from .fact import (Fact, FactType, MetaFact, RelevantFactBindings,
                    RelevantObjectBindings, auto_fact_type)
 from .obj import Object, ObjectType
@@ -29,8 +29,10 @@ def as_list(value):
 
 @functools.lru_cache(maxsize=4096)
 def handle_fact(
-    fact: Fact, output_format="json", output_filehandle: Optional[TextIO] = None
-) -> Fact:
+    fact: Fact,
+    output_format="json",
+    output_filehandle: Optional[TextIO] = None,
+) -> Optional[Fact]:
     """
     add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
@@ -49,10 +51,49 @@ def handle_fact(
 
     fact_copy = copy.deepcopy(fact)
 
+    config = fact_copy.config
+    source_object = fact_copy.source_object
+    destination_object = fact_copy.destination_object
+
     if not output_filehandle:
         output_filehandle = sys.stdout
 
-    if fact_copy.config.act_baseurl:  # type: ignore
+    if config and config.object_formatter:
+        if source_object:
+            source_object.value = config.object_formatter(
+                source_object.type.name, source_object.value
+            )
+        if destination_object:
+            destination_object.value = config.object_formatter(
+                destination_object.type.name,
+                destination_object.value,
+            )
+
+    if config and config.object_validator:
+        if source_object:
+            if not config.object_validator(
+                source_object.type.name, source_object.value
+            ):
+                msg = f"Source object does not validate: {fact_copy.json()}"
+                if config.strict_validator:
+                    error(msg)
+                    raise ValidationError(msg)
+                warning(msg)
+                return None
+
+        if destination_object:
+            if not config.object_validator(
+                destination_object.type.name,
+                destination_object.value,
+            ):
+                msg = f"Destination object does not validate: {fact_copy.json()}"
+                if config.strict_validator:
+                    error(msg)
+                    raise ValidationError(msg)
+                warning(msg)
+                return None
+
+    if config.act_baseurl:  # type: ignore
         fact_copy.add()
     else:
         if output_format == "json":
@@ -84,6 +125,9 @@ class Act(ActBase):
         origin_id=None,
         access_mode="RoleBased",
         organization=None,
+        object_validator=None,
+        object_formatter=None,
+        strict_validator=False,
     ):
         super(Act, self).__init__()
 
@@ -96,6 +140,9 @@ class Act(ActBase):
                 origin_id,
                 access_mode,
                 organization,
+                object_validator,
+                object_formatter,
+                strict_validator,
             )
         )
 
@@ -215,7 +262,7 @@ class Act(ActBase):
 
         res = self.api_post("v1/object/search", **params)
 
-        return act.api.base.ActResultSet(res, self.object, config=self.confg)
+        return act.api.base.ActResultSet(res, self.object, config=self.config)
 
     @schema_doc(Fact.SCHEMA)
     def fact(self, *args, **kwargs):
