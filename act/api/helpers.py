@@ -49,18 +49,20 @@ def handle_facts(
     for fact in facts:
         fact_copy = copy.deepcopy(fact)
 
-        if isinstance(fact_copy, Fact):
+        config = fact_copy.config
+
+        if isinstance(fact_copy, Fact) and config and config.object_formatter:
             fact_copy = fact_copy.format_objects()
 
-        try:
-            if isinstance(fact_copy, Fact):
-                fact_copy.validate()
-        except act.api.base.ValidationError as err:
-            if fact_copy.config and fact_copy.config.strict_validator:
-                error(err)
-                raise
-            warning(err)
-            continue
+        if isinstance(fact_copy, Fact) and config and config.object_validator:
+            try:
+                fact_copy.validate_and_raise()
+            except act.api.base.ValidationError as err:
+                if config and config.strict_validator:
+                    error(err)
+                    raise
+                warning(err)
+                continue
 
         fact_copies.append(fact_copy)
 

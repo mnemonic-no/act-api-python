@@ -522,12 +522,16 @@ class Fact(AbstractFact):
 
         return self
 
-    def validate(self, object_validator = None):
+    def validate_and_raise(self, object_validator = None):
+
         if not object_validator:
             if not self.config or not self.config.object_validator:
                 raise act.api.base.ArgumentError("object_validator must be specified as argument or in configuration")
 
             object_validator = self.config.object_validator
+
+        if self.source_object == self.destination_object:
+            raise act.api.base.ValidationError(f"Source object can not be equal to destination object: {self.json()}")
 
         if self.source_object and not object_validator(
                 self.source_object.type.name, self.source_object.value
