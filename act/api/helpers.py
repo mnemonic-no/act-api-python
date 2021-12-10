@@ -27,25 +27,9 @@ def as_list(value):
     return value
 
 
-def handle_facts(
-    facts: Iterable[Fact],
-    output_format="json",
-    output_filehandle: Optional[TextIO] = None,
-) -> List[Fact]:
-    """
-
-    Handle a list of facts and format and validate all facts before
-    they are added to the a platform or printed to stdout
-
-    ValidationError will cause none of the facts to be handled
-
-    """
+def format_and_validate(facts: Iterable[Fact]) -> List[Fact]:
 
     fact_copies: List[Fact] = []
-
-    if not output_filehandle:
-        output_filehandle = sys.stdout
-
     for fact in facts:
         fact_copy = copy.deepcopy(fact)
 
@@ -65,6 +49,28 @@ def handle_facts(
                 continue
 
         fact_copies.append(fact_copy)
+
+    return fact_copies
+
+
+def handle_facts(
+    facts: Iterable[Fact],
+    output_format="json",
+    output_filehandle: Optional[TextIO] = None,
+) -> List[Fact]:
+    """
+
+    Handle a list of facts and format and validate all facts before
+    they are added to the a platform or printed to stdout
+
+    ValidationError will cause none of the facts to be handled
+
+    """
+
+    if not output_filehandle:
+        output_filehandle = sys.stdout
+
+    fact_copies = format_and_validate(facts)
 
     for fact_copy in fact_copies:
         if fact_copy.config.act_baseurl:  # type: ignore
