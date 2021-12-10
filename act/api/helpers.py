@@ -70,22 +70,22 @@ def handle_facts(
     if not output_filehandle:
         output_filehandle = sys.stdout
 
-    fact_copies = format_and_validate(facts)
+    facts = format_and_validate(facts)
 
-    for fact_copy in fact_copies:
-        if fact_copy.config.act_baseurl:  # type: ignore
-            fact_copy.add()
+    for fact in facts:
+        if fact.config.act_baseurl:  # type: ignore
+            fact.add()
         else:
             if output_format == "json":
-                output_filehandle.write("{}\n".format(fact_copy.json()))
+                output_filehandle.write("{}\n".format(fact.json()))
             elif output_format == "str":
-                output_filehandle.write("{}\n".format(str(fact_copy)))
+                output_filehandle.write("{}\n".format(str(fact)))
             else:
                 raise act.api.base.ArgumentError(
                     "Illegal output_format: {}".format(output_format)
                 )
 
-    return fact_copies
+    return facts
 
 
 @functools.lru_cache(maxsize=4096)
