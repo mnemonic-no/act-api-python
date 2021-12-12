@@ -572,7 +572,8 @@ def handle_uri(
 ) -> List[Fact]:
     """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
 
-    Raises act.api.base.ValidationError if uri does not have scheme and address component.
+    Can raise act.api.base.ValidationError if uri does not have scheme and address component
+    and strict_validator is set in config.
     Make sure to catch this exception and not create other facts to an uri that fails this
     validation as it will most likely fail later when uploading the fact to the platform.
     """
@@ -599,12 +600,15 @@ def handle_uri(
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
     """Get a list of all facts (componentOf, scheme, path, basename) from an URI
 
-    Raises act.api.base.ValidationError if uri does not have scheme and address component.
+    Raises act.api.base.ValidationError if uri does not have scheme and address component
+    and strict_validator is set in config.
     Make sure to catch this exception and not create other facts to an uri that fails this
     validation as it will most likely fail later when uploading the fact to the platform.
 
     Return: List of facts"""
     facts = []
+
+    config = actapi.config
 
     try:
         my_uri = urllib.parse.urlparse(uri)
@@ -615,10 +619,20 @@ def uri_facts(actapi: Act, uri: str) -> List[Fact]:
         addr = my_uri.hostname
         port = my_uri.port
     except ValueError as e:
-        raise act.api.base.ValidationError(f"Error parsing URI: {uri}: {e}")
+        msg = f"Error parsing URI: {uri}: {e}"
+        if config and config.strict_validator:
+            error(msg)
+            raise act.api.base.ValidationError(msg)
+        warning(msg)
+        return []
 
     if not (scheme and addr):
-        raise act.api.base.ValidationError("URI requires both scheme and address part")
+        msg = f"URI requires both scheme and address part: {uri}"
+        if config and config.strict_validator:
+            error(msg)
+            raise act.api.base.ValidationError(msg)
+        warning(msg)
+        return []
 
     try:
         # Is address an ipv4 or ipv6?
