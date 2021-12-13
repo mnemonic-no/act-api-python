@@ -6,7 +6,7 @@ import os
 import re
 import sys
 from logging import debug, error
-from typing import Any, Dict, Text, cast
+from typing import Any, Callable, Dict, Optional, Text, cast
 
 import caep
 
@@ -144,7 +144,11 @@ def fatal(message: Text, exit_code: int = 1) -> None:
     sys.exit(exit_code)
 
 
-def init_act(args: argparse.Namespace) -> act.api.Act:
+def init_act(
+    args: argparse.Namespace,
+    object_formatter: Optional[Callable] = None,
+    object_validator: Optional[Callable] = None,
+) -> act.api.Act:
     """Initialize act api from arguments"""
 
     config = {
@@ -158,6 +162,8 @@ def init_act(args: argparse.Namespace) -> act.api.Act:
         "origin_id": getattr(args, "origin_id", None),
         "access_mode": getattr(args, "access_mode", act.api.DEFAULT_ACCESS_MODE),
         "organization": getattr(args, "organization", None),
+        "object_validator": object_validator,
+        "object_formatter": object_formatter,
     }
 
     requests_kwargs: Dict[Text, Any] = {}

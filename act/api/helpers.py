@@ -5,13 +5,13 @@ import itertools
 import os
 import sys
 import urllib.parse
-from logging import warning
-from typing import List, Optional, Text, TextIO, Tuple
+from logging import error, warning
+from typing import Iterable, List, Optional, Text, TextIO, Tuple
 
 import act.api
 
 from . import DEFAULT_FACT_VALIDATOR, DEFAULT_METAFACT_VALIDATOR
-from .base import ActBase, Config, Origin
+from .base import ActBase, Config, Origin, ValidationError
 from .fact import (Fact, FactType, MetaFact, RelevantFactBindings,
                    RelevantObjectBindings, auto_fact_type)
 from .obj import Object, ObjectType
@@ -27,12 +27,74 @@ def as_list(value):
     return value
 
 
+def format_and_validate(facts: Iterable[Fact]) -> List[Fact]:
+
+    fact_copies: List[Fact] = []
+    for fact in facts:
+        fact_copy = copy.deepcopy(fact)
+
+        config = fact_copy.config
+
+        if isinstance(fact_copy, Fact) and config and config.object_formatter:
+            fact_copy = fact_copy.format_objects()
+
+        if isinstance(fact_copy, Fact) and config and config.object_validator:
+            try:
+                fact_copy.validate_and_raise()
+            except act.api.base.ValidationError as err:
+                if config and config.strict_validator:
+                    error(err)
+                    raise
+                warning(err)
+                continue
+
+        fact_copies.append(fact_copy)
+
+    return fact_copies
+
+
+def handle_facts(
+    facts: Iterable[Fact],
+    output_format="json",
+    output_filehandle: Optional[TextIO] = None,
+) -> List[Fact]:
+    """
+
+    Handle a list of facts and format and validate all facts before
+    they are added to the a platform or printed to stdout
+
+    ValidationError will cause none of the facts to be handled
+
+    """
+
+    if not output_filehandle:
+        output_filehandle = sys.stdout
+
+    facts = format_and_validate(facts)
+
+    for fact in facts:
+        if fact.config.act_baseurl:  # type: ignore
+            fact.add()
+        else:
+            if output_format == "json":
+                output_filehandle.write("{}\n".format(fact.json()))
+            elif output_format == "str":
+                output_filehandle.write("{}\n".format(str(fact)))
+            else:
+                raise act.api.base.ArgumentError(
+                    "Illegal output_format: {}".format(output_format)
+                )
+
+    return facts
+
+
 @functools.lru_cache(maxsize=4096)
 def handle_fact(
-    fact: Fact, output_format="json", output_filehandle: Optional[TextIO] = None
-) -> Fact:
+    fact: Fact,
+    output_format="json",
+    output_filehandle: Optional[TextIO] = None,
+) -> Optional[Fact]:
     """
-    add fact if we configured act_baseurl - if not print fact
     This function has a lru cache with size 4096, so duplicates that
     occur within this cache will be ignored.
 
@@ -40,31 +102,15 @@ def handle_fact(
     it will write to the file handle specified
     """
 
-    # We do not set sys.stdout as default in the function signature
-    # because that breaks redirection in pytest
-    # https://github.com/pytest-dev/pytest/issues/2178
+    # Reuse logic from handle_facts (format, validate, add, etc)
+    facts = handle_facts([fact], output_format, output_filehandle)
 
-    # Take copy of fact, if not it will be updated when added to the platform
-    # and it will create problems when added to the cace with the lru_cache decorator
+    # If not fact is returned, the fact failed to validate
+    if not facts:
+        return None
 
-    fact_copy = copy.deepcopy(fact)
-
-    if not output_filehandle:
-        output_filehandle = sys.stdout
-
-    if fact_copy.config.act_baseurl:  # type: ignore
-        fact_copy.add()
-    else:
-        if output_format == "json":
-            output_filehandle.write("{}\n".format(fact_copy.json()))
-        elif output_format == "str":
-            output_filehandle.write("{}\n".format(str(fact_copy)))
-        else:
-            raise act.api.base.ArgumentError(
-                "Illegal output_format: {}".format(output_format)
-            )
-
-    return fact_copy
+    # Return single fact
+    return facts[0]
 
 
 class Act(ActBase):
@@ -84,6 +130,9 @@ class Act(ActBase):
         origin_id=None,
         access_mode="RoleBased",
         organization=None,
+        object_validator=None,
+        object_formatter=None,
+        strict_validator=False,
     ):
         super(Act, self).__init__()
 
@@ -96,6 +145,9 @@ class Act(ActBase):
                 origin_id,
                 access_mode,
                 organization,
+                object_validator,
+                object_formatter,
+                strict_validator,
             )
         )
 
@@ -215,7 +267,7 @@ class Act(ActBase):
 
         res = self.api_post("v1/object/search", **params)
 
-        return act.api.base.ActResultSet(res, self.object, config=self.confg)
+        return act.api.base.ActResultSet(res, self.object, config=self.config)
 
     @schema_doc(Fact.SCHEMA)
     def fact(self, *args, **kwargs):
@@ -520,7 +572,8 @@ def handle_uri(
 ) -> List[Fact]:
     """Add all facts (componentOf, scheme, path, basename) from an URI to the platform
 
-    Raises act.api.base.ValidationError if uri does not have scheme and address component.
+    Can raise act.api.base.ValidationError if uri does not have scheme and address component
+    and strict_validator is set in config.
     Make sure to catch this exception and not create other facts to an uri that fails this
     validation as it will most likely fail later when uploading the fact to the platform.
     """
@@ -547,12 +600,15 @@ def handle_uri(
 def uri_facts(actapi: Act, uri: str) -> List[Fact]:
     """Get a list of all facts (componentOf, scheme, path, basename) from an URI
 
-    Raises act.api.base.ValidationError if uri does not have scheme and address component.
+    Raises act.api.base.ValidationError if uri does not have scheme and address component
+    and strict_validator is set in config.
     Make sure to catch this exception and not create other facts to an uri that fails this
     validation as it will most likely fail later when uploading the fact to the platform.
 
     Return: List of facts"""
     facts = []
+
+    config = actapi.config
 
     try:
         my_uri = urllib.parse.urlparse(uri)
@@ -563,10 +619,20 @@ def uri_facts(actapi: Act, uri: str) -> List[Fact]:
         addr = my_uri.hostname
         port = my_uri.port
     except ValueError as e:
-        raise act.api.base.ValidationError(f"Error parsing URI: {uri}: {e}")
+        msg = f"Error parsing URI: {uri}: {e}"
+        if config and config.strict_validator:
+            error(msg)
+            raise act.api.base.ValidationError(msg)
+        warning(msg)
+        return []
 
     if not (scheme and addr):
-        raise act.api.base.ValidationError("URI requires both scheme and address part")
+        msg = f"URI requires both scheme and address part: {uri}"
+        if config and config.strict_validator:
+            error(msg)
+            raise act.api.base.ValidationError(msg)
+        warning(msg)
+        return []
 
     try:
         # Is address an ipv4 or ipv6?

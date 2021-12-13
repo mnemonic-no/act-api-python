@@ -192,6 +192,9 @@ class Config(object):
         origin_id=None,
         access_mode=DEFAULT_ACCESS_MODE,
         organization=None,
+        object_validator=None,
+        object_formatter=None,
+        strict_validator=False,
     ):
         """
         act_baseurl - url to ACT instance
@@ -199,6 +202,9 @@ class Config(object):
         requests_common_kwargs - options that will be passed to requests when connecting to ACT api
         origin_name - ACT origin name that will be added to all facts where origin is not set
         origin_id - ACT origin id that will be added to all facts where origin is not set
+
+        object_validator: function that should return True if object validates, otherwise None
+        object_formatter: function that should return a formatted version of the type (e.g. lowercase)
 
         Only one of origin_name of origin_id must be specified.
         """
@@ -213,6 +219,9 @@ class Config(object):
         self.origin_id = origin_id
         self.access_mode = access_mode
         self.organization = organization
+        self.object_validator = object_validator
+        self.object_formatter = object_formatter
+        self.strict_validator = strict_validator
 
 
 class ActBase(Schema):
