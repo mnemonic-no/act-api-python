@@ -428,6 +428,7 @@ Returns created fact type, or exisiting fact type if it already exists.
         if name in existing_fact_types:
             warning("Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
+            fact_type.configure(self.config)
             fact_type.add_object_bindings(relevant_object_bindings)
         else:
             fact_type = self.fact_type(
@@ -558,6 +559,7 @@ Returns created fact type, or exisiting fact type if it already exists.
             # Fact already exists. Do not create fact, but update bindings
             warning("Meta Fact type %s already exists" % name)
             fact_type = existing_fact_types[name]
+            fact_type.configure(self.config)
 
             # Add bindings
             fact_type.add_fact_bindings(bindings)

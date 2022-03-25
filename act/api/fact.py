@@ -4,7 +4,7 @@ import json
 import re
 import time
 from logging import error, info, warning
-from typing import Any, Union, Iterable
+from typing import Any, Iterable, Union
 
 import act.api
 from act.api.re import UUID_MATCH
@@ -62,7 +62,7 @@ class RelevantFactBindings(ActBase):
     ]
 
     def __hash__(self):
-        return hash((self.__class__.__name__, self.name, self.fact_type))
+        return hash((self.__class__.__name__, self.name))
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
@@ -174,7 +174,6 @@ class FactType(ActBase):
         return self.add_fact_bindings(
             [RelevantFactBindings(name=fact_type.name, id=fact_type.id)]
         )
-
 
     def add_fact_bindings(self, add_bindings):
         """Add multiple fact bindings
@@ -502,13 +501,14 @@ class Fact(AbstractFact):
 
         return self
 
-    def format_objects(self, object_formatter = None):
+    def format_objects(self, object_formatter=None):
         if not object_formatter:
             if not self.config or not self.config.object_formatter:
-                raise act.api.base.ArgumentError("object_formatter must be specified as argument or in configuration")
+                raise act.api.base.ArgumentError(
+                    "object_formatter must be specified as argument or in configuration"
+                )
 
             object_formatter = self.config.object_formatter
-
 
         if self.source_object:
             self.source_object.value = object_formatter(
@@ -522,29 +522,36 @@ class Fact(AbstractFact):
 
         return self
 
-    def validate_and_raise(self, object_validator = None):
+    def validate_and_raise(self, object_validator=None):
 
         if not object_validator:
             if not self.config or not self.config.object_validator:
-                raise act.api.base.ArgumentError("object_validator must be specified as argument or in configuration")
+                raise act.api.base.ArgumentError(
+                    "object_validator must be specified as argument or in configuration"
+                )
 
             object_validator = self.config.object_validator
 
         if self.source_object == self.destination_object:
-            raise act.api.base.ValidationError(f"Source object can not be equal to destination object: {self.json()}")
+            raise act.api.base.ValidationError(
+                f"Source object can not be equal to destination object: {self.json()}"
+            )
 
         if self.source_object and not object_validator(
-                self.source_object.type.name, self.source_object.value
-            ):
-                raise act.api.base.ValidationError(f"Source object does not validate: {self.json()}")
+            self.source_object.type.name, self.source_object.value
+        ):
+            raise act.api.base.ValidationError(
+                f"Source object does not validate: {self.json()}"
+            )
 
         if self.destination_object and not object_validator(
-                self.destination_object.type.name, self.destination_object.value
-            ):
-                raise act.api.base.ValidationError(f"Destination object does not validate: {self.json()}")
+            self.destination_object.type.name, self.destination_object.value
+        ):
+            raise act.api.base.ValidationError(
+                f"Destination object does not validate: {self.json()}"
+            )
 
         return True
-
 
     def bidirectional(
         self,
