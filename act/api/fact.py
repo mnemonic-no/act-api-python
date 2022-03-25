@@ -62,7 +62,7 @@ class RelevantFactBindings(ActBase):
     ]
 
     def __hash__(self):
-        return hash((self.__class__.__name__, self.name, self.fact_type))
+        return hash((self.__class__.__name__, self.name))
 
     def serialize(self):
         # Return None for empty objects (non initialized objects)
