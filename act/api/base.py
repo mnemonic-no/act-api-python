@@ -31,6 +31,11 @@ class ValidationError(Exception):
         Exception.__init__(self, *args, **kwargs)
 
 
+class ServiceTimeout(Exception):
+    def __init__(self, *args, **kwargs):
+        Exception.__init__(self, *args, **kwargs)
+
+
 ERROR_HANDLER = {
     # Mapping of message templates provided in 412 errors from backend to
     # Exceptions that will be raised
@@ -43,6 +48,7 @@ ERROR_HANDLER = {
     "organization.not.exist": lambda msg: ValidationError(
         "{message} ({field}={parameter})".format(**msg)
     ),
+    "service.timeout": lambda msg: ServiceTimeout("{message}".format(**msg)),
 }
 
 
