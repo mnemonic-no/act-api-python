@@ -14,6 +14,7 @@ class ObjectType(ActBase):
         Field("validator", default="RegexValidator"),
         Field("validator_parameter", default=DEFAULT_OBJECT_VALIDATOR),
         Field("namespace", deserializer=NameSpace),
+        Field("index_option"),
     ]
 
     def __hash__(self):

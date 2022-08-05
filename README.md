@@ -7,6 +7,11 @@ The source code for this API is availble on [github](https://github.com/mnemonic
 
 # Changelog
 
+## 2.1.0
+
+* Support for `indexOption` for Daily/TimeGlobal indices in the platform
+
+
 ## 1.0.27
 
 * facts created with act.api.Act.fact() will now have "RoleBased" as default access_mode.
