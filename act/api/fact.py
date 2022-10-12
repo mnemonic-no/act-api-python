@@ -271,6 +271,7 @@ class AbstractFact(ActBase):
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
+        Field("last_seen_by", deserializer=Origin, serializer=False),
     ]
 
     @schema_doc(SCHEMA)
