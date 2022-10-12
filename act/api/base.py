@@ -1,8 +1,8 @@
 import copy
 import json
 import re
-import types
 from logging import error, info
+from typing import Any, Dict, Text
 
 import requests
 
@@ -12,28 +12,23 @@ from .schema import Field, MissingField, Schema, schema_doc
 
 
 class NotImplemented(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    ...
 
 
 class ArgumentError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    ...
 
 
 class ResponseError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    ...
 
 
 class ValidationError(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    ...
 
 
 class ServiceTimeout(Exception):
-    def __init__(self, *args, **kwargs):
-        Exception.__init__(self, *args, **kwargs)
+    ...
 
 
 ERROR_HANDLER = {
@@ -50,6 +45,17 @@ ERROR_HANDLER = {
     ),
     "service.timeout": lambda msg: ServiceTimeout("{message}".format(**msg)),
 }
+
+
+def log_error_and_raise(
+    message: Text, url: Text, kwargs: Dict[Text, Any], res: requests.models.Response
+) -> None:
+    error_message = (
+        f"{message}: url={url}, kwargs={kwargs}, "
+        f"status_code={res.status_code}, response={res.text}"
+    )
+    error(error_message)
+    raise ResponseError(error_message)
 
 
 def request(method, user_id, url, requests_common_kwargs=None, **kwargs):
@@ -83,27 +89,40 @@ def request(method, user_id, url, requests_common_kwargs=None, **kwargs):
     except requests.exceptions.ConnectionError as e:
         raise ResponseError("Connection error {}".format(e))
 
-    if res.status_code == 412:
-        error_messages = res.json()["messages"]
+    if res.status_code in (412, 503):
+        try:
+            response = res.json()
+        except requests.exceptions.JSONDecodeError:
+            log_error_and_raise("Unable to parse response as json", url, kwargs, res)
+
+        if "messages" not in response:
+            log_error_and_raise(
+                "Key 'messages' not found in response", url, kwargs, res
+            )
 
         # Example output on object validation error:
-        # {"responseCode": 412, "limit": 0, "count": 0, "messages": [{"type": "FieldError", "message": "Object did not pass validation against ObjectType.", "messageTemplate": "object.not.valid", "field": "objectValue", "parameter": "127.0.0.x", "timestamp": "2019-09-23T18:19:26.476Z"}], "data": null, "size": 0}
+        # {"responseCode": 412, "limit": 0, "count": 0, "messages": [{"type": "FieldError",
+        # "message": "Object did not pass validation against ObjectType.", "messageTemplate":
+        # "object.not.valid", "field": "objectValue", "parameter": "127.0.0.x", "timestamp":
+        # "2019-09-23T18:19:26.476Z"}], "data": null, "size": 0}
 
-        # Raise ValidationError for 412/Object validation errors
-        for msg in error_messages:
+        # Example output on timeout
+        # {"responseCode":503,"limit":0,"count":0,"messages":[{"type":"ActionError","message":
+        # "Request timed out, service may be overloaded or unavailable. Please try again later."
+        # ,"messageTemplate":"service.timeout", "field":null,"parameter":null,"timestamp":
+        # "2022-10-11T11:41:32.238Z"}],"data":null, "size":0}
+
+        # Raise specific exception based on `messageTemplate`
+        for msg in response["messages"]:
             msg_template = msg.get("messageTemplate")
             if msg_template in ERROR_HANDLER:
                 raise ERROR_HANDLER[msg_template](msg)
 
         # All other, unhandled errors - log to error() and raise generic exception
-        error("Request failed: {}, {}, {}".format(url, kwargs, res.status_code))
-        raise ResponseError(res.text)
+        log_error_and_raise("Request failed", url, kwargs, res)
 
     elif res.status_code not in (200, 201):
-        error("Request failed: {}, {}, {}".format(url, kwargs, res.status_code))
-        raise ResponseError(
-            "Unknown response error {}: {}".format(res.status_code, res.text)
-        )
+        log_error_and_raise("Unknown response", url, kwargs, res)
 
     try:
         return res.json()
