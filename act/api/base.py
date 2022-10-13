@@ -365,6 +365,21 @@ def origin_serializer(origin):
     return origin.id or origin.name
 
 
+class UserReference(ActBase):
+    """Represent Users (named Subject in API)"""
+
+    SCHEMA = [
+        Field("name"),
+        Field("id"),
+    ]
+
+    def __hash__(self):
+        # id is part of the hash since this object is never instantiated
+        # by us, it is something we retrieve when we add a fact or
+        # get facts from the server
+        return hash((self.__class__.__name__, self.id))
+
+
 class Origin(ActBase):
     """Manage Origin"""
 
