@@ -377,7 +377,7 @@ class UserReference(ActBase):
         # id is part of the hash since this object is never instantiated
         # by us, it is something we retrieve when we add a fact or
         # get facts from the server
-        return hash((self.__class__.__name__, self.id, self.name))
+        return hash((self.__class__.__name__, self.id))
 
 
 class Origin(ActBase):
