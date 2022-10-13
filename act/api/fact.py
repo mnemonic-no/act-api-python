@@ -10,7 +10,7 @@ import act.api
 from act.api.re import UUID_MATCH
 
 from . import DEFAULT_FACT_VALIDATOR
-from .base import (ActBase, Comment, NameSpace, Organization, Origin,
+from .base import (ActBase, Comment, NameSpace, Organization, Origin, Subject,
                    origin_serializer)
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
@@ -260,7 +260,7 @@ class AbstractFact(ActBase):
         Field("flags", serializer=False),
         Field("origin", deserializer=Origin),
         Field("comment"),
-        Field("added_by", deserializer=Origin, serializer=False),
+        Field("added_by", deserializer=Subject, serializer=False),
         Field("trust", serializer=False),
         Field("confidence"),
         Field("certainty", serializer=False),
@@ -271,7 +271,7 @@ class AbstractFact(ActBase):
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
-        Field("last_seen_by", deserializer=Origin, serializer=False),
+        Field("last_seen_by", deserializer=Subject, serializer=False),
     ]
 
     @schema_doc(SCHEMA)

@@ -365,6 +365,18 @@ def origin_serializer(origin):
     return origin.id or origin.name
 
 
+class Subject(ActBase):
+    """Manage Subjects"""
+
+    SCHEMA = [
+        Field("name"),
+        Field("id"),
+    ]
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self.name))
+
+
 class Origin(ActBase):
     """Manage Origin"""
 
