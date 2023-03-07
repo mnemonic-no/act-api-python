@@ -9,3 +9,4 @@ python-act.tgz
 act_api.egg-info/
 .cache
 .mypy_cache
+.ropeproject
