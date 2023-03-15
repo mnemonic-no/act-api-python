@@ -6,14 +6,71 @@ import os
 import re
 import sys
 from logging import debug, error
-from typing import Any, Callable, Dict, Optional, Text, cast
+from typing import (Any, Callable, Dict, Optional, Text, Type, TypeVar, Union,
+                    cast)
 
 import caep
+from pydantic import BaseModel, Field
+from pydantic.typing import Literal  # type: ignore
 
 import act.api
 
 CONFIG_ID = "act"
 CONFIG_NAME = "act.ini"
+
+
+class Config(BaseModel):
+
+    http_timeout: int = Field(default=120, description="Timeout")
+    proxy_string: Optional[str] = Field(description="Proxy to use for external queries")
+    proxy_platform: bool = Field(
+        default=False, description="Use proxy-string towards the ACT platform"
+    )
+    cert_file: Optional[str] = Field(
+        description="Cerfiticate to add if you are behind a SSL/TLS "
+        + "interception proxy.",
+    )
+    user_id: Optional[str] = Field(description="User ID")
+    act_baseurl: Optional[str] = Field(description="ACT API URI")
+    logfile: Optional[str] = Field(description="Log to file (default = stdout)")
+
+    loglevel: Literal["debug", "info", "warn", "error"] = Field(
+        default="info", description="Loglevel"
+    )
+    http_header: Dict[str, str] = Field(
+        description="Comma separated list of HTTP headers, e.g. "
+        + "'HeaderA: val1, HeaderB:comma\\,val2",
+    )
+
+    http_user: Optional[str] = Field(description="ACT HTTP Basic Auth user")
+    http_password: Optional[str] = Field(description="ACT HTTP Basic Auth password")
+
+
+class FactConfig(Config):
+
+    # choices=["str", "json"],
+    output_format: Literal["str", "json"] = Field(
+        default="json",
+        description="Output format for fact (default=json)",
+    )
+
+    access_mode: Literal["Public", "RoleBased", "Explicit"] = Field(
+        default=act.api.DEFAULT_ACCESS_MODE,
+        description="Specify default access mode used for all facts",
+    )
+    organization: Optional[str] = Field(
+        description="Specify default organization applied to all facts",
+    )
+
+    origin_name: Optional[str] = Field(
+        description="Origin name. This name must be defined in the platform",
+    )
+    origin_id: Optional[str] = Field(
+        description="Origin id. This must be the UUID of the origin in the platform",
+    )
+
+
+ConfigType = TypeVar("ConfigType", bound=Config)
 
 
 def parseargs(description: str, fact_arguments=False) -> argparse.ArgumentParser:
@@ -108,10 +165,28 @@ def __mod_name(stack: inspect.FrameInfo) -> Text:
 
 
 def worker_name() -> Text:
-    """Return first external module that called this function, directly, or indirectly"""
+    """
+    Return first external module that called this function, directly, or indirectly
+    """
 
     modules = [__mod_name(stack) for stack in inspect.stack() if __mod_name(stack)]
     return [name for name in modules if name != modules[0]][0]
+
+
+def load_config(
+    model: Type[caep.schema.BaseModelType], description: str
+) -> caep.schema.BaseModelType:
+    """Wrapper for caep.handle_args where we set config_id and config_name"""
+    config = caep.load(
+        model,
+        description,
+        CONFIG_ID,
+        CONFIG_NAME,
+        worker_name(),
+        exit_on_validation_error=True,
+    )
+
+    return config
 
 
 def handle_args(parser: argparse.ArgumentParser) -> argparse.Namespace:
@@ -145,7 +220,7 @@ def fatal(message: Text, exit_code: int = 1) -> None:
 
 
 def init_act(
-    args: argparse.Namespace,
+    args: Union[argparse.Namespace, Type[ConfigType]],
     object_formatter: Optional[Callable] = None,
     object_validator: Optional[Callable] = None,
 ) -> act.api.Act:
@@ -185,7 +260,7 @@ def init_act(
 
     config["requests_common_kwargs"] = requests_kwargs
 
-    api = act.api.Act(**config)
+    api = act.api.Act(**config)  # type: ignore
 
     if args.http_header:
         # Debug output of HTTP headers (must wait until act.api.Act() is initialized
