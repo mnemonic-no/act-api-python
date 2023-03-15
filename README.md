@@ -7,6 +7,11 @@ The source code for this API is availble on [github](https://github.com/mnemonic
 
 # Changelog
 
+## 2.1.3
+
+* Added support for loading Schema based config in `act.api.lib.cli`, with `load_config()`. The old method of loading the configuration, using `handle_args()` are now deprecated. We will add a deprecation warning in version 2.1.4, and will remove `handle_args()` in version 2.2.0, no earlier than June 1st. 2023.
+
+
 ## 2.1.0
 
 * Support for `indexOption` for Daily/TimeGlobal indices in the platform
