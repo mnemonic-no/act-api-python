@@ -129,6 +129,7 @@ class Act(ActBase):
         origin_name=None,
         origin_id=None,
         access_mode="RoleBased",
+        acl=[],
         organization=None,
         object_validator=None,
         object_formatter=None,
@@ -148,6 +149,7 @@ class Act(ActBase):
                 object_validator,
                 object_formatter,
                 strict_validator,
+                acl,
             )
         )
 

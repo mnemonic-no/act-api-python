@@ -268,6 +268,7 @@ class AbstractFact(ActBase):
         Field("last_seen_timestamp", serializer=False),
         Field("organization", deserializer=Organization),
         Field("access_mode"),
+        Field("acl"),
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
@@ -293,10 +294,12 @@ class AbstractFact(ActBase):
         """
         Set fact defaults from config if we have not specified
         - access_mode
+        - acl
         - origin
         - organization
         """
 
+        self.acl = self.acl or self.config.acl
         self.access_mode = self.access_mode or self.config.access_mode
         self.organization = self.organization or self.config.organization
 
@@ -304,6 +307,11 @@ class AbstractFact(ActBase):
             raise act.api.base.ArgumentError(
                 f"Illegal access_mode: {self.access_mode}. Must be one of "
                 + f"{','.join(act.api.ACCESS_MODES)}"
+            )
+
+        if self.acl and not self.access_mode == "Explicit":
+            raise act.api.base.ArgumentError(
+                "Can not set acl unless access_mode=Explicit"
             )
 
         if not self.origin:

@@ -6,11 +6,11 @@ import os
 import re
 import sys
 from logging import debug, error
-from typing import (Any, Callable, Dict, Optional, Text, Type, TypeVar, Union,
-                    cast)
+from typing import (Any, Callable, Dict, List, Optional, Text, Type, TypeVar,
+                    Union, cast)
 
 import caep
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 from pydantic.typing import Literal  # type: ignore
 
 import act.api
@@ -58,6 +58,11 @@ class FactConfig(Config):
         default=act.api.DEFAULT_ACCESS_MODE,
         description="Specify default access mode used for all facts",
     )
+
+    acl: List[str] = Field(
+        description="Specify ACLs (commaseparated list of uuid or string) "
+        "for all facts. Requires `Explicit` access_mode.",
+    )
     organization: Optional[str] = Field(
         description="Specify default organization applied to all facts",
     )
@@ -68,6 +73,17 @@ class FactConfig(Config):
     origin_id: Optional[str] = Field(
         description="Origin id. This must be the UUID of the origin in the platform",
     )
+
+    @root_validator
+    def check_arguments(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """If acl is set, access_mode *must* be `Explicit`"""
+
+        if values.get("acl") and not values.get("access_mode") == "Explicit":
+            raise act.api.base.ArgumentError(
+                "Can not set acl without access_mode=Explicit"
+            )
+
+        return values
 
 
 ConfigType = TypeVar("ConfigType", bound=Config)
