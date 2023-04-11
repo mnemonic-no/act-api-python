@@ -6,8 +6,7 @@ import os
 import re
 import sys
 from logging import debug, error
-from typing import (Any, Callable, Dict, List, Optional, Text, Type, TypeVar,
-                    Union, cast)
+from typing import Any, Callable, Dict, List, Optional, Text, Type, TypeVar, Union, cast
 
 import caep
 from pydantic import BaseModel, Field, root_validator
@@ -20,7 +19,6 @@ CONFIG_NAME = "act.ini"
 
 
 class Config(BaseModel):
-
     http_timeout: int = Field(default=120, description="Timeout")
     proxy_string: Optional[str] = Field(description="Proxy to use for external queries")
     proxy_platform: bool = Field(
@@ -47,7 +45,6 @@ class Config(BaseModel):
 
 
 class FactConfig(Config):
-
     # choices=["str", "json"],
     output_format: Literal["str", "json"] = Field(
         default="json",
@@ -78,10 +75,12 @@ class FactConfig(Config):
     def check_arguments(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """If acl is set, access_mode *must* be `Explicit`"""
 
-        if values.get("acl") and not values.get("access_mode") == "Explicit":
-            raise act.api.base.ArgumentError(
-                "Can not set acl without access_mode=Explicit"
-            )
+        # If ACL is set, access mode should always be explicit
+        if (
+            values.get("acl")
+            and not values.get("access_mode") == act.api.ACCESS_MODES_EXPLICIT
+        ):
+            values["access_mode"] = act.api.ACCESS_MODES_EXPLICIT
 
         return values
 
