@@ -10,8 +10,15 @@ import act.api
 from act.api.re import UUID_MATCH
 
 from . import DEFAULT_FACT_VALIDATOR
-from .base import (ActBase, Comment, NameSpace, Organization, Origin,
-                   UserReference, origin_serializer)
+from .base import (
+    ActBase,
+    Comment,
+    NameSpace,
+    Organization,
+    Origin,
+    UserReference,
+    origin_serializer,
+)
 from .obj import Object, ObjectType
 from .schema import Field, MissingField, ValidationError, schema_doc
 
@@ -117,7 +124,8 @@ class FactType(ActBase):
         Args:
             source_object_type (objectType):        Source Object Type
             destination_object_type (objectType):   Destination Object Type
-            bidirectional_binding (boolean):        Whether the binding is bidirectional"""
+            bidirectional_binding (boolean):        Whether the binding is bidirectional
+        """
         return self.add_object_bindings(
             [
                 RelevantObjectBindings(
@@ -250,7 +258,6 @@ def object_serializer(obj):
 
 
 class AbstractFact(ActBase):
-
     SCHEMA = [
         Field(
             "type", deserializer=FactType, serializer=lambda fact_type: fact_type.name
@@ -268,6 +275,7 @@ class AbstractFact(ActBase):
         Field("last_seen_timestamp", serializer=False),
         Field("organization", deserializer=Organization),
         Field("access_mode"),
+        Field("acl"),
         Field("source_object", deserializer=Object),
         Field("destination_object", deserializer=Object),
         Field("bidirectional_binding", default=False),
@@ -293,10 +301,12 @@ class AbstractFact(ActBase):
         """
         Set fact defaults from config if we have not specified
         - access_mode
+        - acl
         - origin
         - organization
         """
 
+        self.acl = self.acl or self.config.acl
         self.access_mode = self.access_mode or self.config.access_mode
         self.organization = self.organization or self.config.organization
 
@@ -305,6 +315,10 @@ class AbstractFact(ActBase):
                 f"Illegal access_mode: {self.access_mode}. Must be one of "
                 + f"{','.join(act.api.ACCESS_MODES)}"
             )
+
+        # If ACL is set, access mode should always be explicit
+        if self.acl and not self.access_mode == act.api.ACCESS_MODES_EXPLICIT:
+            self.access_mode == act.api.ACCESS_MODES_EXPLICIT
 
         if not self.origin:
             # If origin is not specified explicit on the fact, use origin from default config
@@ -433,7 +447,6 @@ class AbstractFact(ActBase):
 
         # Add destination object if set
         if self.destination_object:
-
             # Use arrow unless bidirectional
             if self.bidirectional_binding:
                 out += "-"
@@ -524,7 +537,6 @@ class Fact(AbstractFact):
         return self
 
     def validate_and_raise(self, object_validator=None):
-
         if not object_validator:
             if not self.config or not self.config.object_validator:
                 raise act.api.base.ArgumentError(

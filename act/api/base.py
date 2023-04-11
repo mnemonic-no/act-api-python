@@ -220,6 +220,7 @@ class Config(object):
         object_validator=None,
         object_formatter=None,
         strict_validator=False,
+        acl=[],
     ):
         """
         act_baseurl - url to ACT instance
@@ -237,6 +238,9 @@ class Config(object):
         if origin_id and not re.search(UUID_MATCH, origin_id):
             raise ArgumentError("origin_id id not a valaid UUID: {}".format(origin_id))
 
+        if not isinstance(acl, list):
+            raise ArgumentError("acl must be a list: {}".format(acl))
+
         self.act_baseurl = act_baseurl
         self.user_id = user_id
         self.requests_common_kwargs = requests_common_kwargs
@@ -247,6 +251,7 @@ class Config(object):
         self.object_validator = object_validator
         self.object_formatter = object_formatter
         self.strict_validator = strict_validator
+        self.acl = acl
 
 
 class ActBase(Schema):
